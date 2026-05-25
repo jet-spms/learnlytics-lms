@@ -1,0 +1,777 @@
+/* ================================================================
+   V4 — Profile, Roles, Avatars, Sidebar Footer, Admin Panel
+   All classes prefixed to avoid collision with existing SPMS styles.
+   ================================================================ */
+
+/* ── User Avatar ────────────────────────────────────────────────── */
+/* Initials-based avatar circle, used in sidebar, profile page, admin panel */
+.user-avatar {
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: -.02em;
+  user-select: none;
+}
+.user-avatar--sm  { width: 32px; height: 32px; font-size: .82rem; }
+.user-avatar--md  { width: 44px; height: 44px; font-size: 1rem; }
+.user-avatar--lg  { width: 60px; height: 60px; font-size: 1.35rem; }
+.user-avatar--xl  { width: 88px; height: 88px; font-size: 2rem; }
+
+/* ── Sidebar Footer ─────────────────────────────────────────────── */
+/* Pinned to bottom of sidebar; holds Profile + Admin Panel buttons */
+.sidebar-footer {
+  border-top: 1px solid var(--border);
+  padding: .5rem .5rem .6rem;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  flex-shrink: 0;
+}
+
+/* Base sidebar-footer button */
+.sf-btn {
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background var(--trans);
+  text-align: left;
+  width: 100%;
+}
+.sf-btn:hover { background: var(--surface2); }
+
+/* Full-width profile button — avatar + name/role + gear icon */
+.sf-btn--profile {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem .65rem;
+}
+
+.sf-profile-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  min-width: 0;
+}
+.sf-name {
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sf-role {
+  font-size: .72rem;
+  font-weight: 500;
+  padding: .1rem .4rem;
+  border-radius: 20px;
+  width: fit-content;
+}
+.sf-role--trainer { background: #DBEAFE; color: #0260D4; }
+.sf-role--admin   { background: #ede9fe; color: #7c3aed; }
+body.dark .sf-role--trainer { background: #1e3a8a; color: #93C5FD; }
+body.dark .sf-role--admin   { background: #2e1a52; color: #c4b5fd; }
+
+.sf-edit-hint {
+  font-size: .85rem;
+  color: var(--text3);
+  flex-shrink: 0;
+  transition: color var(--trans);
+}
+.sf-btn--profile:hover .sf-edit-hint { color: var(--accent); }
+
+/* Admin panel row button */
+.sf-btn--admin-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem .65rem;
+  font-size: .83rem;
+  font-weight: 600;
+  color: var(--accent2);
+  border: 1px solid transparent;
+  border-radius: 7px;
+}
+.sf-btn--admin-row:hover {
+  background: #ede9fe;
+  border-color: #c4b5fd;
+}
+body.dark .sf-btn--admin-row:hover {
+  background: #2e1a52;
+  border-color: #7c3aed;
+}
+
+/* Compact mode: icon-only square buttons */
+.sf-btn--compact {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+.sf-btn--admin {
+  font-size: 1rem;
+  color: var(--accent2);
+}
+
+/* ── Header role badge ──────────────────────────────────────────── */
+/* Small "Admin" badge shown next to user name in the header */
+.header-role-badge {
+  font-size: .65rem;
+  font-weight: 700;
+  background: var(--accent2);
+  color: #fff;
+  padding: .1rem .45rem;
+  border-radius: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: .3rem;
+}
+
+/* ── Auth screen optional label ─────────────────────────────────── */
+.auth-optional {
+  font-size: .75rem;
+  font-weight: 400;
+  color: var(--text3);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: .25rem;
+}
+
+/* ── Profile page layout ────────────────────────────────────────── */
+.profile-page-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+@media (max-width: 860px) {
+  .profile-page-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Identity card (avatar + name + role) ───────────────────────── */
+.profile-identity-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .85rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+.profile-id-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4rem;
+}
+.profile-fullname {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.01em;
+}
+.profile-username {
+  font-size: .875rem;
+  color: var(--text3);
+  font-family: monospace;
+}
+.profile-contact {
+  font-size: .84rem;
+  color: var(--text2);
+  display: flex; align-items: center; gap: .3rem;
+}
+.profile-contact svg { width: .85rem; height: .85rem; opacity: .7; }
+.profile-since {
+  font-size: .78rem;
+  color: var(--text3);
+  margin-top: .15rem;
+}
+
+/* ── Role badge ─────────────────────────────────────────────────── */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: .25rem .75rem;
+  border-radius: 20px;
+  letter-spacing: .03em;
+}
+.role-badge svg { width: .85rem; height: .85rem; }
+.role-badge--trainer { background: #DBEAFE; color: #0260D4; border: 1px solid #BFDBFE; }
+.role-badge--admin   { background: #ede9fe; color: #7c3aed; border: 1px solid #ddd6fe; }
+body.dark .role-badge--trainer { background: #1e3a8a; color: #93C5FD; border-color: #1D4ED8; }
+body.dark .role-badge--admin   { background: #2e1a52; color: #c4b5fd; border-color: #7c3aed; }
+
+/* Inline variant used in admin panel */
+.role-badge-inline {
+  font-size: .72rem;
+  font-weight: 600;
+  padding: .1rem .45rem;
+  border-radius: 12px;
+}
+.role-badge-inline.role-badge--trainer { background: #DBEAFE; color: #0260D4; }
+.role-badge-inline.role-badge--admin   { background: #ede9fe; color: #7c3aed; }
+.role-badge-inline.role-badge--student { background: #dcfce7; color: #15803d; }
+body.dark .role-badge-inline.role-badge--trainer { background: #1e3a8a; color: #93C5FD; }
+body.dark .role-badge-inline.role-badge--admin   { background: #2e1a52; color: #c4b5fd; }
+body.dark .role-badge-inline.role-badge--student { background: #14532d; color: #86efac; }
+
+/* ── Profile edit card ──────────────────────────────────────────── */
+.profile-edit-card {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.profile-save-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-top: .25rem;
+}
+/* Success variant of auth-error (reuses base, overrides color) */
+.prof-success {
+  background: var(--good-bg) !important;
+  color: var(--good) !important;
+  border-color: var(--good) !important;
+}
+
+/* ── Profile statistics card ────────────────────────────────────── */
+.profile-stats-card { }
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .75rem;
+  margin-top: .75rem;
+}
+.profile-stat-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem .75rem;
+  text-align: center;
+}
+.profile-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+.profile-stat-label {
+  font-size: .75rem;
+  color: var(--text3);
+  margin-top: .25rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+/* ── Profile security card ──────────────────────────────────────── */
+.profile-security-card { }
+.profile-security-actions {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-top: .75rem;
+}
+.profile-sec-btn {
+  flex: 1;
+  min-width: 140px;
+  justify-content: center;
+}
+
+/* ── Admin Panel ────────────────────────────────────────────────── */
+.admin-trainers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-trainer-card {
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+}
+
+.admin-trainer-header {
+  display: flex;
+  align-items: flex-start;
+  gap: .85rem;
+}
+
+.admin-trainer-meta {
+  flex: 1;
+  min-width: 0;
+}
+.admin-trainer-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.admin-trainer-sub {
+  font-size: .8rem;
+  color: var(--text3);
+  margin-top: .15rem;
+}
+.admin-trainer-counts {
+  font-size: .8rem;
+  color: var(--text2);
+  margin-top: .25rem;
+  font-weight: 500;
+}
+
+.admin-batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  padding-left: calc(44px + .85rem); /* align with trainer name (avatar + gap) */
+}
+
+.admin-batch-row {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .5rem .85rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--trans);
+}
+.admin-batch-row:hover {
+  background: #DBEAFE;
+  border-color: var(--accent);
+}
+body.dark .admin-batch-row:hover {
+  background: #1e3a8a;
+  border-color: var(--accent);
+}
+.admin-batch-name {
+  flex: 1;
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.admin-batch-info {
+  font-size: .78rem;
+  color: var(--text3);
+}
+.admin-batch-arrow {
+  font-size: .9rem;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity var(--trans);
+}
+.admin-batch-row:hover .admin-batch-arrow { opacity: 1; }
+
+/* ── Responsive tweaks for profile page ─────────────────────────── */
+@media (max-width: 600px) {
+  .profile-stats-grid     { grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+  .profile-stat-value     { font-size: 1.2rem; }
+  .profile-security-actions { flex-direction: column; }
+  .admin-batch-list       { padding-left: 0; }
+}
+
+/* ── Presentation Evaluation Modal (pev) ────────────────────────── */
+.pev-modal { max-width: 500px; width: 100%; }
+
+/* Header: student name + date badge */
+.pev-header-info { display: flex; flex-direction: column; gap: .2rem; }
+.pev-student-name { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.pev-date-badge   { font-size: .8rem; color: var(--text3); display: inline-flex; align-items: center; gap: .3rem; }
+.pev-date-badge svg { width: .9rem; height: .9rem; }
+
+/* Live average score banner */
+.pev-avg-banner {
+  display: flex; align-items: baseline; justify-content: center;
+  gap: .4rem; padding: .9rem 1.25rem; border-radius: var(--radius);
+  margin-bottom: .75rem;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  transition: background var(--trans), border-color var(--trans);
+}
+.pev-avg-banner.pev-avg--good   { background: var(--good-bg);  border-color: var(--good); }
+.pev-avg-banner.pev-avg--mid    { background: var(--warn-bg);  border-color: var(--warn); }
+.pev-avg-banner.pev-avg--weak   { background: var(--bad-bg);   border-color: var(--bad);  }
+.pev-avg-label  { font-size: .78rem; color: var(--text3); letter-spacing: .02em; }
+.pev-avg-value  {
+  font-size: 2.4rem; font-weight: 700; line-height: 1;
+  color: var(--text); font-variant-numeric: tabular-nums;
+  min-width: 3.5ch; text-align: right;
+}
+.pev-avg--good .pev-avg-value  { color: var(--good); }
+.pev-avg--mid  .pev-avg-value  { color: var(--warn); }
+.pev-avg--weak .pev-avg-value  { color: var(--bad);  }
+.pev-avg-out { font-size: .9rem; color: var(--text3); }
+
+/* Weak skill tags */
+.pev-weak-row {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: .35rem; min-height: 1.6rem; margin-bottom: .5rem;
+  font-size: .8rem;
+}
+.pev-weak-label { color: var(--bad); font-weight: 600; }
+.pev-weak-tag {
+  background: var(--bad-bg); color: var(--bad);
+  border-radius: 20px; padding: .15rem .55rem;
+  font-size: .75rem; font-weight: 500;
+}
+
+/* Slider rows */
+.pev-sliders { display: flex; flex-direction: column; gap: .65rem; }
+.pev-slider-row { display: flex; flex-direction: column; gap: .25rem; }
+.pev-slider-meta {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.pev-skill-label { font-size: .875rem; font-weight: 500; color: var(--text2); }
+
+/* Score badge beside slider */
+.pev-score-badge {
+  font-size: .85rem; font-weight: 700; min-width: 2.2ch; text-align: right;
+  padding: .1rem .45rem; border-radius: 6px;
+  background: var(--surface2); color: var(--text);
+  transition: background var(--trans), color var(--trans);
+}
+.pev-score-badge--weak   { background: var(--bad-bg);  color: var(--bad);  }
+.pev-score-badge--mid    { background: var(--warn-bg); color: var(--warn); }
+.pev-score-badge--strong { background: var(--good-bg); color: var(--good); }
+
+/* Slider track + range input */
+.pev-slider-track { position: relative; }
+.pev-slider {
+  width: 100%; accent-color: var(--accent);
+  cursor: pointer; height: 4px;
+}
+.pev-track-labels {
+  display: flex; justify-content: space-between;
+  font-size: .68rem; color: var(--text3);
+  padding: 0 2px;
+}
+
+/* Footer */
+.pev-footer { display: flex; justify-content: flex-end; gap: .6rem; }
+.pev-save-btn { min-width: 150px; }
+
+/* Responsive */
+@media (max-width: 540px) {
+  .pev-modal { max-width: 100%; margin: 0 .5rem; }
+  .pev-avg-value { font-size: 1.8rem; }
+}
+
+/* ─── Phase 1: Batch Management Enhancements ─────────────────────────────── */
+
+/* Batch status badge in dashboard title */
+.batch-status-badge {
+  display: inline-block;
+  font-size: .7rem; font-weight: 600;
+  padding: .2em .6em; border-radius: 999px;
+  vertical-align: middle; margin-left: .5rem;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.batch-status--active    { background: var(--good-bg);    color: var(--good); }
+.batch-status--upcoming  { background: #DBEAFE;            color: #0260D4; }
+.batch-status--completed { background: var(--warn-bg);    color: var(--warn); }
+.batch-status--archived  { background: var(--surface2);   color: var(--text3); }
+
+/* Archived batch banner */
+.archived-banner {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .75rem 1.2rem;
+  color: var(--text2);
+  font-size: .9rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Sidebar: archived section label */
+.sidebar-section-label {
+  padding: .4rem .9rem .2rem;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text3);
+  list-style: none;
+}
+.batch-item--archived { opacity: .8; }
+.batch-item--archived .batch-name { color: var(--text3); }
+.batch-count--archived {
+  background: var(--surface2);
+  color: var(--text3);
+}
+
+/* Two-column form grid in batch modal */
+.form-grid--2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}
+@media (max-width: 500px) {
+  .form-grid--2 { grid-template-columns: 1fr; }
+}
+.form-hint { font-size: .75rem; color: var(--text3); font-weight: 400; }
+
+/* Transfer button in student table */
+.btn-icon--transfer {
+  color: #7c3aed;
+}
+.btn-icon--transfer:hover {
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+body.dark .btn-icon--transfer       { color: #a78bfa; }
+body.dark .btn-icon--transfer:hover { background: rgba(139,92,246,.15); color: #c4b5fd; }
+
+/* Transfer modal */
+.transfer-student-name {
+  font-size: 1rem;
+  color: var(--text);
+}
+.transfer-note {
+  margin-top: .75rem;
+  font-size: .82rem;
+  color: var(--text3);
+  font-style: italic;
+}
+
+/* Archive button */
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* ─── Phase 5: Admin Control Center ─────────────────────────────────────── */
+
+/* Section spacing within the control center */
+.acc-section { margin-bottom: 1.5rem; }
+.acc-section:last-child { margin-bottom: 0; }
+
+/* Small count badge beside card titles */
+.acc-count {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text3);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: .15em .65em;
+}
+
+/* Empty cell in admin tables */
+.acc-empty {
+  text-align: center;
+  padding: 1.25rem;
+  color: var(--text3);
+  font-size: .875rem;
+}
+
+/* Back button above the batch detail title */
+.acc-back-btn { margin-bottom: .5rem; }
+
+/* Batch detail info card */
+.acc-detail-card { margin-bottom: 1.5rem; }
+.acc-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem 1.5rem;
+  padding: .25rem 0;
+}
+@media (max-width: 700px) {
+  .acc-detail-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .acc-detail-grid { grid-template-columns: 1fr; }
+}
+.acc-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+.acc-detail-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
+}
+.acc-detail-value {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Instructor assignment modal — checkbox group */
+.acc-check-group {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: .5rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.acc-check-label {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .35rem .4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: .875rem;
+  color: var(--text);
+  transition: background var(--trans);
+}
+.acc-check-label:hover { background: var(--border); }
+.acc-check-label input[type="checkbox"] {
+  width: 15px; height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+/* AD1: designation pill shown next to trainer name in assign modal */
+.acc-desg-tag {
+  display: inline-block;
+  font-size: .7rem; font-weight: 600;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 4px; padding: .1rem .35rem;
+  margin-left: .3rem; vertical-align: middle;
+}
+
+/* ─── Phase 2: Instructor Management ────────────────────────────────────── */
+
+/* Instructor panel card on batch dashboard */
+.instr-panel {
+  margin-bottom: 1.25rem;
+  padding: .85rem 1.2rem;
+}
+.instr-panel-header {
+  margin-bottom: .6rem;
+}
+.instr-panel-title {
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text3);
+}
+.instr-panel-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+/* Instructor chips */
+.instr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .3rem .65rem .3rem .4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  font-size: .82rem;
+}
+.instr-chip--primary   { border-color: #BFDBFE; background: #EFF6FF; }
+.instr-chip--assistant { border-color: var(--border); }
+.instr-chip--substitute{ border-color: #BFDBFE; background: #EFF6FF; }
+body.dark .instr-chip--primary    { border-color: #1D4ED8; background: #1e3a8a; }
+body.dark .instr-chip--substitute { border-color: #1D4ED8; background: #1e3a8a; }
+
+/* Mini avatar inside chip */
+.instr-avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.instr-avatar--asst { background: var(--text3); }
+.instr-avatar--sub  { background: var(--warn); }
+
+.instr-name { font-weight: 600; color: var(--text); }
+
+/* Tiny role badge */
+.instr-role-badge {
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .1em .45em;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.instr-role--primary    { background: #DBEAFE; color: #0260D4; }
+.instr-role--assistant  { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+.instr-role--substitute { background: #DBEAFE; color: #0277FA; }
+body.dark .instr-role--primary    { background: #1e3a8a; color: #93C5FD; }
+body.dark .instr-role--substitute { background: #1e3a8a; color: #93C5FD; }
+
+.instr-sub-dates {
+  font-size: .72rem;
+  color: var(--text3);
+  font-style: italic;
+}
+
+/* Manage instructors modal — wider modal variant */
+.modal--wide { max-width: 680px; width: 95vw; }
+
+/* Section dividers inside the instructor modal */
+.im-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.im-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.im-section-title {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: .75rem;
+  letter-spacing: .02em;
+}
+
+/* Add-instructor row */
+.im-add-row {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: .75rem;
+}
+.im-add-row .form-input { flex: 1; min-width: 120px; }
+.im-add-row .btn { white-space: nowrap; flex-shrink: 0; }
+
+@media (max-width: 540px) {
+  .modal--wide { max-width: 100%; }
+  .im-add-row  { flex-direction: column; align-items: stretch; }
+}
+

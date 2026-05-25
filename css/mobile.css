@@ -1,0 +1,109 @@
+/* ================================================================
+   MOBILE UX IMPROVEMENTS
+   All rules below are mobile-only (≤640px) unless marked otherwise.
+   Desktop layout is completely unchanged.
+   ================================================================ */
+
+/* ── Hamburger button (desktop: hidden, mobile: visible) ──────── */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.hamburger-btn span {
+  display: block;
+  height: 2px;
+  background: var(--text2);
+  border-radius: 2px;
+  transition: background var(--trans);
+}
+.hamburger-btn:hover { background: var(--surface2); }
+.hamburger-btn:active { transform: scale(.95); }
+@media (max-width: 640px) {
+  .hamburger-btn { display: flex; }
+}
+
+/* ── Sidebar backdrop overlay ─────────────────────────────────── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 199;
+  backdrop-filter: blur(2px);
+}
+.sidebar-backdrop.active { display: block; }
+
+/* ── Touch target sizes ───────────────────────────────────────── */
+@media (max-width: 640px) {
+  .qbtn {
+    padding: .62rem .9rem;
+    font-size: .83rem;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-date-nav {
+    padding: .5rem .85rem;
+    font-size: 1.1rem;
+    min-height: 40px;
+  }
+  .mod-tab {
+    padding: .7rem 1rem;
+    font-size: .86rem;
+  }
+}
+
+/* ── Modal bottom-sheet style on mobile ───────────────────────── */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: .5rem;
+    align-items: flex-end;
+  }
+  .modal,
+  .modal-large,
+  .modal-sm,
+  .modal--wide,
+  .pev-modal {
+    max-width: 100% !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    margin: 0;
+    max-height: 92vh;
+    animation: slideUp .25s cubic-bezier(.34,1.2,.64,1);
+  }
+}
+
+/* ── Active press feedback (all screen sizes) ─────────────────── */
+.btn:active,
+.qbtn:active { transform: scale(.97); transition: transform .1s; }
+.card:active  { transform: scale(.98); transition: transform .1s; }
+
+/* ── Font size floor on mobile ────────────────────────────────── */
+@media (max-width: 640px) {
+  .pres-slot-num,
+  .quick-id,
+  .att-tag { font-size: .78rem; }
+}
+
+/* ── Safe area insets (iPhone notch / home bar) ───────────────── */
+.app-header {
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+}
+@media (max-width: 640px) {
+  .main-content {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+

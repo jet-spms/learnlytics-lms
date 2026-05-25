@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learnlytics — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #4F46E5;
+      --primary-dark: #3730A3;
+      --primary-light: #EEF2FF;
+      --secondary: #0EA5E9;
+      --accent: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --bg: #F8FAFC;
+      --bg-2: #FFFFFF;
+      --bg-3: #F1F5F9;
+      --border: #E2E8F0;
+      --text: #0F172A;
+      --text-2: #475569;
+      --text-3: #94A3B8;
+      --sidebar-bg: #0F172A;
+      --sidebar-text: #CBD5E1;
+      --sidebar-hover: rgba(255,255,255,.07);
+      --sidebar-active: rgba(79,70,229,.25);
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+      --radius: 12px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0B1120;
+      --bg-2: #0F172A;
+      --bg-3: #1E293B;
+      --border: #1E293B;
+      --text: #F1F5F9;
+      --text-2: #CBD5E1;
+      --text-3: #475569;
+      --sidebar-bg: #020817;
+      --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+      --primary-light: #1e1b4b;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg); color: var(--text);
+      display: flex; min-height: 100vh;
+      transition: background .3s, color .3s;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; }
+
+    /* ═══════════════════════════════
+       SIDEBAR
+    ═══════════════════════════════ */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--sidebar-bg);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0;
+      z-index: 50; transition: transform .3s;
+    }
+
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 22px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      color: #fff; font-weight: 800; font-size: 1.1rem;
+    }
+    .sidebar-logo-mark {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: .82rem; color: #fff;
+      flex-shrink: 0;
+    }
+
+    .sidebar-section {
+      padding: 16px 12px 6px;
+      font-size: .67rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: rgba(255,255,255,.3);
+    }
+
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 8px; }
+    .sidebar-nav::-webkit-scrollbar { width: 4px; }
+    .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      font-size: .86rem; font-weight: 500;
+      color: var(--sidebar-text); cursor: pointer;
+      transition: background .15s, color .15s;
+      border: none; background: none; width: 100%;
+      text-align: left; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+    .nav-item.active { background: var(--sidebar-active); color: #fff; }
+    .nav-item .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: var(--danger);
+      color: #fff; border-radius: 99px;
+      font-size: .65rem; font-weight: 700;
+      padding: 1px 7px; min-width: 18px; text-align: center;
+    }
+
+    .sidebar-bottom {
+      padding: 12px; border-top: 1px solid rgba(255,255,255,.07);
+    }
+    .sidebar-user {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      cursor: pointer; transition: background .15s;
+    }
+    .sidebar-user:hover { background: var(--sidebar-hover); }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .78rem; color: #fff; flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: .82rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: .7rem; color: rgba(255,255,255,.4); }
+
+    /* ═══════════════════════════════
+       MAIN AREA
+    ═══════════════════════════════ */
+    .main {
+      flex: 1; margin-left: 240px;
+      display: flex; flex-direction: column; min-height: 100vh;
+    }
+
+    /* ─── TOPBAR ─── */
+    .topbar {
+      background: var(--bg-2); border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 40;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .page-title { font-size: 1rem; font-weight: 700; }
+    .topbar-badge {
+      font-size: .7rem; font-weight: 700; color: var(--primary);
+      background: var(--primary-light); padding: 2px 8px; border-radius: 99px;
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--bg-3); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .95rem; color: var(--text-2); transition: background .2s, color .2s;
+      position: relative;
+    }
+    .icon-btn:hover { background: var(--border); color: var(--text); }
+    .notif-dot {
+      position: absolute; top: 6px; right: 6px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--danger); border: 1.5px solid var(--bg-2);
+    }
+
+    /* ─── CONTENT ─── */
+    .content { flex: 1; padding: 28px; }
+
+    /* ─── VIEWS ─── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ─── STATS ROW ─── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 16px; margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      display: flex; flex-direction: column; gap: 6px;
+      transition: box-shadow .2s;
+    }
+    .stat-card:hover { box-shadow: var(--shadow); }
+    .stat-top { display: flex; align-items: center; justify-content: space-between; }
+    .stat-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .stat-delta {
+      font-size: .72rem; font-weight: 600; padding: 2px 7px;
+      border-radius: 99px;
+    }
+    .delta-up { background: #d1fae5; color: #065f46; }
+    .delta-down { background: #fee2e2; color: #991b1b; }
+    [data-theme="dark"] .delta-up { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .delta-down { background: #450a0a; color: #fca5a5; }
+
+    .stat-value { font-size: 1.8rem; font-weight: 900; letter-spacing: -.02em; }
+    .stat-label { font-size: .78rem; color: var(--text-3); font-weight: 500; }
+
+    /* ─── GRID 2-COL ─── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .grid-3-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+
+    /* ─── CARD ─── */
+    .card {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+    }
+    .card-title { font-size: .9rem; font-weight: 700; }
+    .card-action {
+      font-size: .78rem; color: var(--primary); font-weight: 600;
+      cursor: pointer; background: none; border: none;
+      transition: opacity .2s; padding: 0;
+    }
+    .card-action:hover { opacity: .75; }
+    .card-body { padding: 20px; }
+
+    /* ─── STUDENT TABLE ─── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; padding: 10px 16px;
+      font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--text-3); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border); transition: background .15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg-3); }
+    tbody td { padding: 12px 16px; font-size: .85rem; vertical-align: middle; }
+
+    .student-cell { display: flex; align-items: center; gap: 10px; }
+    .s-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .s-name { font-weight: 600; font-size: .88rem; }
+    .s-email { font-size: .72rem; color: var(--text-3); }
+
+    .score-chip {
+      display: inline-flex; align-items: center;
+      font-weight: 700; font-size: .88rem;
+    }
+    .score-bar-mini {
+      width: 48px; height: 5px; background: var(--bg-3);
+      border-radius: 99px; overflow: hidden; display: inline-block;
+      margin-left: 8px; vertical-align: middle;
+    }
+    .score-fill { height: 100%; border-radius: 99px; }
+
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 9px; border-radius: 999px;
+      font-size: .7rem; font-weight: 700;
+    }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-orange { background: #fef3c7; color: #92400e; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-blue { background: #e0f2fe; color: #0369a1; }
+    .badge-gray { background: #f1f5f9; color: #64748b; }
+    [data-theme="dark"] .badge-green { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .badge-orange { background: #451a03; color: #fcd34d; }
+    [data-theme="dark"] .badge-red { background: #450a0a; color: #fca5a5; }
+    [data-theme="dark"] .badge-blue { background: #0c4a6e; color: #7dd3fc; }
+    [data-theme="dark"] .badge-gray { background: #1e293b; color: #94a3b8; }
+
+    .action-btn {
+      padding: 5px 12px; border-radius: 6px; border: 1.5px solid var(--border);
+      background: none; color: var(--text-2); font-size: .75rem; font-weight: 600;
+      cursor: pointer; transition: all .15s;
+    }
+    .action-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+    /* ─── MINI CHART ─── */
+    .chart-bars {
+      display: flex; align-items: flex-end; gap: 6px;
+      height: 80px; padding: 0 4px;
+    }
+    .chart-bar {
+      flex: 1; border-radius: 4px 4px 0 0;
+      background: linear-gradient(180deg, var(--primary), var(--secondary));
+      opacity: .7; transition: opacity .2s, height .3s;
+      cursor: pointer;
+    }
+    .chart-bar:hover { opacity: 1; }
+    .chart-labels {
+      display: flex; gap: 6px; padding: 6px 4px 0;
+    }
+    .chart-label {
+      flex: 1; text-align: center; font-size: .65rem; color: var(--text-3);
+    }
+
+    /* ─── DONUT ─── */
+    .donut-wrap { display: flex; align-items: center; gap: 20px; }
+    .donut-svg { flex-shrink: 0; }
+    .donut-legend { flex: 1; }
+    .legend-item {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 10px; font-size: .82rem;
+    }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .legend-name { flex: 1; color: var(--text-2); }
+    .legend-val { font-weight: 700; }
+
+    /* ─── TOP PERFORMERS ─── */
+    .performer-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .performer-row:last-child { border-bottom: none; }
+    .rank-badge {
+      width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 800; flex-shrink: 0;
+    }
+    .rank-1 { background: #fef3c7; color: #92400e; }
+    .rank-2 { background: #f1f5f9; color: #64748b; }
+    .rank-3 { background: #fce7f3; color: #9d174d; }
+    [data-theme="dark"] .rank-1 { background: #451a03; color: #fcd34d; }
+    [data-theme="dark"] .rank-2 { background: #1e293b; color: #94a3b8; }
+    [data-theme="dark"] .rank-3 { background: #4a044e; color: #f0abfc; }
+    .p-name { font-weight: 600; font-size: .85rem; flex: 1; }
+    .p-score { font-size: 1rem; font-weight: 900; color: var(--primary); }
+
+    /* ─── ALERT CARD ─── */
+    .alert-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-icon {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: .9rem;
+    }
+    .alert-body { flex: 1; }
+    .alert-text { font-size: .82rem; font-weight: 600; margin-bottom: 2px; }
+    .alert-sub { font-size: .73rem; color: var(--text-3); }
+
+    /* ─── BATCH CARDS ─── */
+    .batch-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .batch-card {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      cursor: pointer; transition: box-shadow .2s, border-color .2s, transform .2s;
+    }
+    .batch-card:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,.1);
+      border-color: var(--primary); transform: translateY(-2px);
+    }
+    .batch-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+    .batch-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+    }
+    .batch-name { font-weight: 700; font-size: .95rem; margin-bottom: 2px; }
+    .batch-meta { font-size: .75rem; color: var(--text-3); }
+    .batch-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .batch-stat { text-align: center; }
+    .batch-stat .v { font-size: .95rem; font-weight: 800; }
+    .batch-stat .k { font-size: .65rem; color: var(--text-3); }
+    .batch-progress { margin-top: 14px; }
+    .prog-label { display: flex; justify-content: space-between; font-size: .73rem; color: var(--text-3); margin-bottom: 5px; }
+    .prog-bar { height: 5px; background: var(--bg-3); border-radius: 99px; overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+
+    /* ─── ADD BUTTONS ─── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 9px 18px; border-radius: 8px; font-size: .85rem; font-weight: 600;
+      cursor: pointer; border: none; font-family: inherit; transition: all .2s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline {
+      background: transparent; color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+    .btn-outline:hover { background: var(--primary-light); }
+    .btn-ghost { background: var(--bg-3); color: var(--text-2); }
+    .btn-ghost:hover { background: var(--border); }
+    .btn-danger { background: var(--danger); color: #fff; }
+
+    /* ─── SEARCH BAR ─── */
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      padding: 9px 14px 9px 36px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--bg-3); color: var(--text);
+      font-family: inherit; font-size: .85rem; width: 220px;
+      transition: border-color .2s, background .2s; outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--primary); background: var(--bg-2); }
+    .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: .85rem; color: var(--text-3); pointer-events: none; }
+
+    /* ─── PAGE HEADER ─── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    }
+    .page-header-left h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 2px; }
+    .page-header-left p { font-size: .83rem; color: var(--text-3); }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; opacity: 0; pointer-events: none; transition: opacity .25s;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg-2); border-radius: 18px;
+      width: 100%; max-width: 480px; padding: 32px;
+      transform: scale(.95) translateY(10px); transition: transform .3s;
+      border: 1px solid var(--border); max-height: 90vh; overflow-y: auto;
+    }
+    .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .modal-title { font-size: 1.1rem; font-weight: 800; }
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--bg-3); border: none; cursor: pointer; color: var(--text-2);
+      font-size: 1rem; display: flex; align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    .modal-close:hover { background: var(--border); }
+    .modal-form-group { margin-bottom: 16px; }
+    .modal-form-group label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-2); margin-bottom: 5px; }
+    .modal-form-group input,
+    .modal-form-group select {
+      width: 100%; padding: 10px 13px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--bg); color: var(--text);
+      font-family: inherit; font-size: .88rem; outline: none;
+      transition: border-color .2s;
+    }
+    .modal-form-group input:focus,
+    .modal-form-group select:focus { border-color: var(--primary); }
+    .modal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+    /* ─── TOAST ─── */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #0F172A; color: #fff; padding: 12px 22px; border-radius: 10px;
+      font-size: .85rem; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,.25);
+      transition: transform .3s; z-index: 999; display: flex; align-items: center; gap: 8px;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .toast { background: #F1F5F9; color: #0F172A; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ─── TABS ─── */
+    .tab-bar {
+      display: flex; gap: 4px; background: var(--bg-3);
+      border-radius: 10px; padding: 4px; width: fit-content; margin-bottom: 20px;
+    }
+    .tab {
+      padding: 7px 18px; border-radius: 7px; font-size: .83rem; font-weight: 600;
+      cursor: pointer; border: none; background: none; color: var(--text-3);
+      font-family: inherit; transition: all .2s;
+    }
+    .tab.active { background: var(--bg-2); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+    /* ─── ATTENDANCE GRID ─── */
+    .attendance-legend { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+    .legend-pill {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .75rem; color: var(--text-2);
+    }
+    .legend-pill .dot { width: 12px; height: 12px; border-radius: 3px; }
+
+    .att-table th, .att-table td { padding: 9px 12px; font-size: .8rem; }
+    .att-table td:first-child { font-weight: 600; }
+    .att-cell {
+      width: 28px; height: 28px; border-radius: 6px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700; cursor: pointer; transition: transform .15s;
+    }
+    .att-cell:hover { transform: scale(1.15); }
+    .att-present { background: #d1fae5; color: #065f46; }
+    .att-absent { background: #fee2e2; color: #991b1b; }
+    .att-late { background: #fef3c7; color: #92400e; }
+    .att-none { background: var(--bg-3); color: var(--text-3); }
+    [data-theme="dark"] .att-present { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .att-absent { background: #450a0a; color: #fca5a5; }
+    [data-theme="dark"] .att-late { background: #451a03; color: #fcd34d; }
+
+    /* ─── SCORE INPUT TABLE ─── */
+    .score-input {
+      width: 60px; padding: 5px 8px; border: 1.5px solid var(--border);
+      border-radius: 6px; background: var(--bg); color: var(--text);
+      font-family: inherit; font-size: .82rem; text-align: center; outline: none;
+    }
+    .score-input:focus { border-color: var(--primary); }
+
+    /* ─── MOBILE ─── */
+    @media (max-width: 1024px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .grid-2, .grid-3-1 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .content { padding: 16px; }
+      .topbar { padding: 0 16px; }
+      .modal { margin: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-mark">LL</div>
+    Learnlytics
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="sidebar-section">Main</div>
+    <button class="nav-item active" data-view="overview">
+      <span class="nav-icon">📊</span> Overview
+    </button>
+    <button class="nav-item" data-view="batches">
+      <span class="nav-icon">🗂️</span> Batches
+    </button>
+    <button class="nav-item" data-view="students">
+      <span class="nav-icon">👥</span> Students
+    </button>
+
+    <div class="sidebar-section">Tracking</div>
+    <button class="nav-item" data-view="attendance">
+      <span class="nav-icon">📅</span> Attendance
+    </button>
+    <button class="nav-item" data-view="assessments">
+      <span class="nav-icon">📝</span> Assessments
+    </button>
+    <button class="nav-item" data-view="presentations">
+      <span class="nav-icon">🎤</span> Presentations
+    </button>
+
+    <div class="sidebar-section">Reports</div>
+    <button class="nav-item" data-view="exports">
+      <span class="nav-icon">📤</span> Exports
+    </button>
+    <button class="nav-item" data-view="alerts">
+      <span class="nav-icon">⚑</span> Alerts
+      <span class="nav-badge" id="alertBadge">3</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-user" id="sidebarUser">
+      <div class="user-avatar" id="userAvatar">RS</div>
+      <div class="user-info">
+        <div class="user-name" id="userName">Ravi Sharma</div>
+        <div class="user-role">Trainer</div>
+      </div>
+    </div>
+    <button class="nav-item" style="margin-top:4px" onclick="logout()">
+      <span class="nav-icon">🚪</span> Logout
+    </button>
+  </div>
+</aside>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" id="menuBtn" style="display:none">☰</button>
+      <span class="page-title" id="pageTitle">Overview</span>
+      <span class="topbar-badge" id="activeBatch">Batch A · 2025</span>
+    </div>
+    <div class="topbar-right">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search students…" id="globalSearch" />
+      </div>
+      <button class="icon-btn" id="themeToggle">🌙</button>
+      <button class="icon-btn" id="notifBtn">
+        🔔 <span class="notif-dot"></span>
+      </button>
+      <div class="user-avatar" style="cursor:pointer" id="topbarAvatar">RS</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ═══ VIEW: OVERVIEW ═══ -->
+    <div class="view active" id="view-overview">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Good morning, <span id="greetName">Ravi</span> 👋</h2>
+          <p>Here's what's happening with your batches today.</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" onclick="showView('exports')">📤 Export</button>
+          <button class="btn btn-primary" onclick="openModal('addStudentModal')">+ Add Student</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-top">
+            <div class="stat-icon" style="background:#EEF2FF">👥</div>
+            <span class="stat-delta delta-up">+4 this week</span>
+          </div>
+          <div class="stat-value" id="statStudents">34</div>
+          <div class="stat-label">Total Students</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top">
+            <div class="stat-icon" style="background:#D1FAE5">📅</div>
+            <span class="stat-delta delta-up">+2.1%</span>
+          </div>
+          <div class="stat-value green" id="statAttendance">78%</div>
+          <div class="stat-label">Avg Attendance</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top">
+            <div class="stat-icon" style="background:#E0F2FE">🏆</div>
+            <span class="stat-delta delta-up">+1.3 pts</span>
+          </div>
+          <div class="stat-value" style="color:var(--secondary)" id="statScore">72.4</div>
+          <div class="stat-label">Avg Final Score</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top">
+            <div class="stat-icon" style="background:#FEE2E2">⚑</div>
+            <span class="stat-delta delta-down">3 flagged</span>
+          </div>
+          <div class="stat-value" style="color:var(--danger)" id="statFlags">3</div>
+          <div class="stat-label">At-Risk Students</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Weekly Attendance Trend</span>
+            <button class="card-action">View all</button>
+          </div>
+          <div class="card-body">
+            <div class="chart-bars" id="attendanceChart"></div>
+            <div class="chart-labels" id="attendanceLabels"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Score Distribution</span>
+          </div>
+          <div class="card-body">
+            <div class="donut-wrap">
+              <svg class="donut-svg" viewBox="0 0 120 120" width="110" height="110">
+                <circle cx="60" cy="60" r="48" fill="none" stroke="var(--bg-3)" stroke-width="18"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="#4F46E5" stroke-width="18"
+                  stroke-dasharray="90 212" stroke-dashoffset="0" stroke-linecap="round"
+                  transform="rotate(-90 60 60)"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="#10B981" stroke-width="18"
+                  stroke-dasharray="64 212" stroke-dashoffset="-90" stroke-linecap="round"
+                  transform="rotate(-90 60 60)"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="#F59E0B" stroke-width="18"
+                  stroke-dasharray="38 212" stroke-dashoffset="-154" stroke-linecap="round"
+                  transform="rotate(-90 60 60)"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="#EF4444" stroke-width="18"
+                  stroke-dasharray="20 212" stroke-dashoffset="-192" stroke-linecap="round"
+                  transform="rotate(-90 60 60)"/>
+                <text x="60" y="64" text-anchor="middle" font-size="14" font-weight="800" fill="var(--text)">34</text>
+              </svg>
+              <div class="donut-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#4F46E5"></div><div class="legend-name">Excellent (80+)</div><div class="legend-val">15</div></div>
+                <div class="legend-item"><div class="legend-dot" style="background:#10B981"></div><div class="legend-name">Good (60–79)</div><div class="legend-val">11</div></div>
+                <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div><div class="legend-name">Average (40–59)</div><div class="legend-val">5</div></div>
+                <div class="legend-item"><div class="legend-dot" style="background:#EF4444"></div><div class="legend-name">At Risk (&lt;40)</div><div class="legend-val">3</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top performers + Alerts -->
+      <div class="grid-3-1">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">All Students — Final Scores</span>
+            <button class="card-action" onclick="showView('students')">View all →</button>
+          </div>
+          <div class="table-wrap">
+            <table id="overviewTable">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Attendance</th>
+                  <th>Academic</th>
+                  <th>Presentation</th>
+                  <th>Mock</th>
+                  <th>Final Score</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="overviewTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🏆 Top Performers</span>
+            </div>
+            <div class="card-body" id="topPerformers"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">⚑ Alerts</span>
+              <button class="card-action" onclick="showView('alerts')">See all →</button>
+            </div>
+            <div class="card-body" id="alertsPreview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: BATCHES ═══ -->
+    <div class="view" id="view-batches">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Batches</h2>
+          <p>Manage your training batches and track cohort progress.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('addBatchModal')">+ New Batch</button>
+      </div>
+      <div class="batch-grid" id="batchGrid"></div>
+    </div>
+
+    <!-- ═══ VIEW: STUDENTS ═══ -->
+    <div class="view" id="view-students">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Students</h2>
+          <p>View and manage all students across your batches.</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Search…" id="studentSearch" oninput="filterStudents(this.value)" />
+          </div>
+          <button class="btn btn-primary" onclick="openModal('addStudentModal')">+ Add Student</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Student</th><th>Batch</th><th>Attendance</th>
+                <th>Academic</th><th>Presentation</th><th>Mock</th>
+                <th>Final Score</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: ATTENDANCE ═══ -->
+    <div class="view" id="view-attendance">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Attendance</h2>
+          <p>Mark and review daily attendance for your batch.</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" onclick="markAll('P')">✅ All Present</button>
+          <button class="btn btn-ghost" onclick="markAll('A')">❌ All Absent</button>
+          <button class="btn btn-primary" onclick="saveAttendance()">Save Today</button>
+        </div>
+      </div>
+      <div class="attendance-legend">
+        <div class="legend-pill"><div class="dot" style="background:#d1fae5"></div>Present</div>
+        <div class="legend-pill"><div class="dot" style="background:#fee2e2"></div>Absent</div>
+        <div class="legend-pill"><div class="dot" style="background:#fef3c7"></div>Late</div>
+        <div class="legend-pill"><div class="dot" style="background:var(--bg-3)"></div>Not Marked</div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="att-table">
+            <thead id="attHead"></thead>
+            <tbody id="attBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: ASSESSMENTS ═══ -->
+    <div class="view" id="view-assessments">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Assessments</h2>
+          <p>Enter and update academic & mock interview scores.</p>
+        </div>
+        <button class="btn btn-primary" onclick="saveScores()">💾 Save Scores</button>
+      </div>
+      <div class="tab-bar">
+        <button class="tab active" onclick="switchScoreTab(this,'academic')">Academic</button>
+        <button class="tab" onclick="switchScoreTab(this,'mock')">Mock Interview</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Test 1</th><th>Test 2</th><th>Test 3</th>
+                <th>Assignment</th><th>Average</th>
+              </tr>
+            </thead>
+            <tbody id="assessmentTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: PRESENTATIONS ═══ -->
+    <div class="view" id="view-presentations">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Presentations</h2>
+          <p>Schedule and score student presentations.</p>
+        </div>
+        <button class="btn btn-primary" onclick="autoSchedule()">⚡ Auto-Schedule</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Student</th><th>Round 1</th><th>Round 2</th><th>Round 3</th><th>Avg Score</th><th>Slot</th><th>Status</th></tr>
+            </thead>
+            <tbody id="presentationTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: EXPORTS ═══ -->
+    <div class="view" id="view-exports">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Exports</h2>
+          <p>Generate Excel and PDF reports for your batch.</p>
+        </div>
+      </div>
+      <div class="batch-grid">
+        <div class="card" style="padding:28px">
+          <div style="font-size:2.5rem;margin-bottom:14px">📊</div>
+          <div style="font-weight:700;font-size:1rem;margin-bottom:6px">Full Performance Report</div>
+          <div style="font-size:.82rem;color:var(--text-3);margin-bottom:18px">Complete student data — attendance, scores, final ranking, and flags.</div>
+          <button class="btn btn-primary" style="width:100%" onclick="exportCSV()">⬇ Download CSV</button>
+        </div>
+        <div class="card" style="padding:28px">
+          <div style="font-size:2.5rem;margin-bottom:14px">📋</div>
+          <div style="font-weight:700;font-size:1rem;margin-bottom:6px">Attendance Sheet</div>
+          <div style="font-size:.82rem;color:var(--text-3);margin-bottom:18px">Monthly attendance log with present/absent/late breakdown per student.</div>
+          <button class="btn btn-outline" style="width:100%" onclick="exportAttCSV()">⬇ Download CSV</button>
+        </div>
+        <div class="card" style="padding:28px">
+          <div style="font-size:2.5rem;margin-bottom:14px">🥇</div>
+          <div style="font-weight:700;font-size:1rem;margin-bottom:6px">Leaderboard</div>
+          <div style="font-size:.82rem;color:var(--text-3);margin-bottom:18px">Ranked student list by Final Score with metric breakdown.</div>
+          <button class="btn btn-outline" style="width:100%" onclick="exportLeaderboard()">⬇ Download CSV</button>
+        </div>
+        <div class="card" style="padding:28px">
+          <div style="font-size:2.5rem;margin-bottom:14px">⚑</div>
+          <div style="font-weight:700;font-size:1rem;margin-bottom:6px">At-Risk Report</div>
+          <div style="font-size:.82rem;color:var(--text-3);margin-bottom:18px">Students below threshold — with contact info and recommended actions.</div>
+          <button class="btn btn-danger" style="width:100%" onclick="exportAtRisk()">⬇ Download CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: ALERTS ═══ -->
+    <div class="view" id="view-alerts">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Alerts</h2>
+          <p>Students and issues that need your attention.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" id="alertsFull"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Add Student -->
+<div class="modal-overlay" id="addStudentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add New Student</div>
+      <button class="modal-close" onclick="closeModal('addStudentModal')">✕</button>
+    </div>
+    <div class="modal-form-row">
+      <div class="modal-form-group">
+        <label>First Name</label>
+        <input type="text" id="newFirst" placeholder="Arjun" />
+      </div>
+      <div class="modal-form-group">
+        <label>Last Name</label>
+        <input type="text" id="newLast" placeholder="Mehta" />
+      </div>
+    </div>
+    <div class="modal-form-group">
+      <label>Email</label>
+      <input type="email" id="newEmail" placeholder="arjun@example.com" />
+    </div>
+    <div class="modal-form-group">
+      <label>Phone</label>
+      <input type="text" id="newPhone" placeholder="+91 98765 43210" />
+    </div>
+    <div class="modal-form-group">
+      <label>Batch</label>
+      <select id="newBatch">
+        <option value="Batch A">Batch A · 2025</option>
+        <option value="Batch B">Batch B · 2025</option>
+        <option value="Batch C">Batch C · 2025</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addStudentModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addStudent()">Add Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Batch -->
+<div class="modal-overlay" id="addBatchModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Create New Batch</div>
+      <button class="modal-close" onclick="closeModal('addBatchModal')">✕</button>
+    </div>
+    <div class="modal-form-group">
+      <label>Batch Name</label>
+      <input type="text" id="batchName" placeholder="e.g. Batch D" />
+    </div>
+    <div class="modal-form-group">
+      <label>Technology / Course</label>
+      <input type="text" id="batchCourse" placeholder="e.g. Full Stack Web Dev" />
+    </div>
+    <div class="modal-form-row">
+      <div class="modal-form-group">
+        <label>Start Date</label>
+        <input type="date" id="batchStart" />
+      </div>
+      <div class="modal-form-group">
+        <label>End Date</label>
+        <input type="date" id="batchEnd" />
+      </div>
+    </div>
+    <div class="modal-form-group">
+      <label>Max Students</label>
+      <input type="number" id="batchMax" placeholder="30" value="30" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addBatchModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addBatch()">Create Batch</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastMsg">✅ Saved successfully</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Mon2','Tue2','Wed2','Thu2'];
+const COLORS = ['#4F46E5','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
+
+function defaultStudents() {
+  return [
+    { id:1, first:'Arjun',   last:'Mehta',   email:'arjun@example.com',   phone:'+91 98765 43210', batch:'Batch A', att:87, acad:79, pres:84, mock:78 },
+    { id:2, first:'Priya',   last:'Sharma',  email:'priya@example.com',   phone:'+91 87654 32109', batch:'Batch A', att:82, acad:74, pres:76, mock:72 },
+    { id:3, first:'Rohit',   last:'Verma',   email:'rohit@example.com',   phone:'+91 76543 21098', batch:'Batch A', att:61, acad:52, pres:55, mock:48 },
+    { id:4, first:'Neha',    last:'Singh',   email:'neha@example.com',    phone:'+91 65432 10987', batch:'Batch A', att:75, acad:71, pres:68, mock:66 },
+    { id:5, first:'Karan',   last:'Patel',   email:'karan@example.com',   phone:'+91 54321 09876', batch:'Batch A', att:91, acad:85, pres:88, mock:82 },
+    { id:6, first:'Sneha',   last:'Iyer',    email:'sneha@example.com',   phone:'+91 43210 98765', batch:'Batch A', att:70, acad:67, pres:64, mock:61 },
+    { id:7, first:'Vikram',  last:'Rao',     email:'vikram@example.com',  phone:'+91 32109 87654', batch:'Batch A', att:55, acad:48, pres:52, mock:44 },
+    { id:8, first:'Anjali',  last:'Nair',    email:'anjali@example.com',  phone:'+91 21098 76543', batch:'Batch B', att:88, acad:83, pres:86, mock:80 },
+    { id:9, first:'Siddharth',last:'Gupta',  email:'sid@example.com',     phone:'+91 10987 65432', batch:'Batch B', att:79, acad:76, pres:72, mock:74 },
+    { id:10,first:'Pooja',   last:'Desai',   email:'pooja@example.com',   phone:'+91 09876 54321', batch:'Batch B', att:83, acad:78, pres:81, mock:75 },
+    { id:11,first:'Rahul',   last:'Joshi',   email:'rahul@example.com',   phone:'+91 98765 11111', batch:'Batch B', att:68, acad:62, pres:59, mock:57 },
+    { id:12,first:'Divya',   last:'Menon',   email:'divya@example.com',   phone:'+91 87654 22222', batch:'Batch C', att:92, acad:88, pres:90, mock:85 },
+    { id:13,first:'Aditya',  last:'Kapoor',  email:'aditya@example.com',  phone:'+91 76543 33333', batch:'Batch C', att:74, acad:69, pres:66, mock:63 },
+    { id:14,first:'Meera',   last:'Reddy',   email:'meera@example.com',   phone:'+91 65432 44444', batch:'Batch C', att:42, acad:38, pres:40, mock:35 },
+    { id:15,first:'Suresh',  last:'Kumar',   email:'suresh@example.com',  phone:'+91 54321 55555', batch:'Batch C', att:80, acad:75, pres:77, mock:71 },
+  ];
+}
+
+function defaultBatches() {
+  return [
+    { id:'A', name:'Batch A', course:'Full Stack Web Dev', start:'2025-01-15', end:'2025-06-30', max:30, color:COLORS[0], icon:'💻' },
+    { id:'B', name:'Batch B', course:'Data Science & ML', start:'2025-02-01', end:'2025-07-31', max:25, color:COLORS[1], icon:'📊' },
+    { id:'C', name:'Batch C', course:'DevOps & Cloud',    start:'2025-03-01', end:'2025-08-31', max:20, color:COLORS[2], icon:'☁️' },
+  ];
+}
+
+let students = JSON.parse(localStorage.getItem('ll-students')) || defaultStudents();
+let batches  = JSON.parse(localStorage.getItem('ll-batches'))  || defaultBatches();
+let attendance = JSON.parse(localStorage.getItem('ll-att')) || {};
+let scores = JSON.parse(localStorage.getItem('ll-scores')) || {};
+
+function save() {
+  localStorage.setItem('ll-students', JSON.stringify(students));
+  localStorage.setItem('ll-batches',  JSON.stringify(batches));
+  localStorage.setItem('ll-att',      JSON.stringify(attendance));
+  localStorage.setItem('ll-scores',   JSON.stringify(scores));
+}
+
+// ═══════════════════════════════════════════════════════
+// COMPUTED
+// ═══════════════════════════════════════════════════════
+function finalScore(s) {
+  return Math.round(s.att * .30 + s.acad * .30 + s.pres * .20 + s.mock * .20);
+}
+
+function statusOf(s) {
+  const fs = finalScore(s);
+  if (fs >= 80) return { label:'Excellent', cls:'badge-green' };
+  if (fs >= 60) return { label:'Good',      cls:'badge-blue' };
+  if (fs >= 40) return { label:'Average',   cls:'badge-orange' };
+  return { label:'At Risk', cls:'badge-red' };
+}
+
+function initials(s) { return (s.first[0]+s.last[0]).toUpperCase(); }
+function fullName(s) { return s.first + ' ' + s.last; }
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+const VIEWS = {
+  'overview':'Overview','batches':'Batches','students':'Students',
+  'attendance':'Attendance','assessments':'Assessments','presentations':'Presentations',
+  'exports':'Exports','alerts':'Alerts'
+};
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelector(`[data-view="${name}"]`).classList.add('active');
+  document.getElementById('pageTitle').textContent = VIEWS[name];
+  renderView(name);
+}
+
+function renderView(name) {
+  if (name === 'overview')     renderOverview();
+  if (name === 'batches')      renderBatches();
+  if (name === 'students')     renderStudents();
+  if (name === 'attendance')   renderAttendance();
+  if (name === 'assessments')  renderAssessments();
+  if (name === 'presentations')renderPresentations();
+  if (name === 'alerts')       renderAlertsFull();
+}
+
+document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => showView(btn.dataset.view));
+});
+
+// ═══════════════════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════════════════
+function renderOverview() {
+  // Stats
+  const atRisk = students.filter(s => finalScore(s) < 40).length;
+  const avgAtt = Math.round(students.reduce((a,s) => a + s.att, 0) / students.length);
+  const avgScore = (students.reduce((a,s) => a + finalScore(s), 0) / students.length).toFixed(1);
+  document.getElementById('statStudents').textContent   = students.length;
+  document.getElementById('statAttendance').textContent = avgAtt + '%';
+  document.getElementById('statScore').textContent      = avgScore;
+  document.getElementById('statFlags').textContent      = atRisk;
+  document.getElementById('alertBadge').textContent     = atRisk;
+
+  // Attendance chart
+  const bars = [72,75,68,80,78,82,79,85,83,78];
+  const chartEl = document.getElementById('attendanceChart');
+  chartEl.innerHTML = bars.map(v =>
+    `<div class="chart-bar" style="height:${v}%" title="${v}%"></div>`
+  ).join('');
+  document.getElementById('attendanceLabels').innerHTML =
+    DAYS.slice(0,10).map(d => `<div class="chart-label">${d.replace(/\d/,'')}</div>`).join('');
+
+  // Overview table (top 8)
+  const sorted = [...students].sort((a,b) => finalScore(b) - finalScore(a));
+  document.getElementById('overviewTbody').innerHTML = sorted.slice(0,8).map(s => {
+    const fs = finalScore(s); const st = statusOf(s);
+    return `<tr>
+      <td><div class="student-cell">
+        <div class="s-avatar" style="background:${COLORS[s.id % COLORS.length]}">${initials(s)}</div>
+        <div><div class="s-name">${fullName(s)}</div><div class="s-email">${s.email}</div></div>
+      </div></td>
+      <td>${s.att}%</td>
+      <td>${s.acad}</td>
+      <td>${s.pres}</td>
+      <td>${s.mock}</td>
+      <td><span class="score-chip" style="color:${fs>=70?'var(--accent)':fs>=50?'var(--warning)':'var(--danger)'}">${fs}
+        <span class="score-bar-mini"><span class="score-fill" style="width:${fs}%;background:${fs>=70?'var(--accent)':fs>=50?'var(--warning)':'var(--danger)'}"></span></span>
+      </span></td>
+      <td><span class="badge ${st.cls}">${st.label}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Top performers
+  document.getElementById('topPerformers').innerHTML = sorted.slice(0,5).map((s,i) => `
+    <div class="performer-row">
+      <div class="rank-badge rank-${Math.min(i+1,3)}">#${i+1}</div>
+      <div class="s-avatar" style="background:${COLORS[s.id%COLORS.length]};width:28px;height:28px;font-size:.68rem">${initials(s)}</div>
+      <div class="p-name">${fullName(s)}</div>
+      <div class="p-score">${finalScore(s)}</div>
+    </div>
+  `).join('');
+
+  // Alerts preview
+  const atRiskStudents = students.filter(s => finalScore(s) < 55).slice(0,3);
+  document.getElementById('alertsPreview').innerHTML = atRiskStudents.map(s => `
+    <div class="alert-item">
+      <div class="alert-icon" style="background:#fee2e2">⚑</div>
+      <div class="alert-body">
+        <div class="alert-text">${fullName(s)} — Score ${finalScore(s)}</div>
+        <div class="alert-sub">Below threshold · ${s.batch}</div>
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--text-3);font-size:.85rem;text-align:center;padding:12px">No active alerts 🎉</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// BATCHES
+// ═══════════════════════════════════════════════════════
+function renderBatches() {
+  document.getElementById('batchGrid').innerHTML = batches.map(b => {
+    const bStudents = students.filter(s => s.batch === b.name);
+    const avgAtt = bStudents.length ? Math.round(bStudents.reduce((a,s) => a+s.att,0)/bStudents.length) : 0;
+    const avgScore = bStudents.length ? Math.round(bStudents.reduce((a,s) => a+finalScore(s),0)/bStudents.length) : 0;
+    const atRisk = bStudents.filter(s => finalScore(s)<40).length;
+    return `<div class="batch-card">
+      <div class="batch-header">
+        <div>
+          <div class="batch-name">${b.name}</div>
+          <div class="batch-meta">${b.course}</div>
+        </div>
+        <div class="batch-icon" style="background:${b.color}22">${b.icon}</div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text-3);margin-bottom:6px">
+        📅 ${b.start} → ${b.end}
+      </div>
+      <div class="batch-stats">
+        <div class="batch-stat"><div class="v">${bStudents.length}</div><div class="k">Students</div></div>
+        <div class="batch-stat"><div class="v" style="color:var(--accent)">${avgAtt}%</div><div class="k">Attendance</div></div>
+        <div class="batch-stat"><div class="v" style="color:var(--primary)">${avgScore}</div><div class="k">Avg Score</div></div>
+      </div>
+      <div class="batch-progress">
+        <div class="prog-label"><span>Avg Attendance</span><span>${avgAtt}%</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${avgAtt}%"></div></div>
+      </div>
+      ${atRisk > 0 ? `<div style="margin-top:10px"><span class="badge badge-red">⚑ ${atRisk} at risk</span></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// STUDENTS
+// ═══════════════════════════════════════════════════════
+function renderStudents(filter = '') {
+  const filtered = filter
+    ? students.filter(s => fullName(s).toLowerCase().includes(filter.toLowerCase()) || s.email.toLowerCase().includes(filter.toLowerCase()) || s.batch.toLowerCase().includes(filter.toLowerCase()))
+    : students;
+  const sorted = [...filtered].sort((a,b) => finalScore(b)-finalScore(a));
+  document.getElementById('studentsTbody').innerHTML = sorted.map((s,i) => {
+    const fs = finalScore(s); const st = statusOf(s);
+    return `<tr>
+      <td style="color:var(--text-3);font-weight:600">${i+1}</td>
+      <td><div class="student-cell">
+        <div class="s-avatar" style="background:${COLORS[s.id%COLORS.length]}">${initials(s)}</div>
+        <div><div class="s-name">${fullName(s)}</div><div class="s-email">${s.email}</div></div>
+      </div></td>
+      <td><span class="badge badge-gray">${s.batch}</span></td>
+      <td>${s.att}%</td>
+      <td>${s.acad}</td>
+      <td>${s.pres}</td>
+      <td>${s.mock}</td>
+      <td><b style="color:${fs>=70?'var(--accent)':fs>=50?'var(--warning)':'var(--danger)'}">${fs}</b></td>
+      <td><span class="badge ${st.cls}">${st.label}</span></td>
+      <td><button class="action-btn" onclick="deleteStudent(${s.id})">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+function filterStudents(v) { renderStudents(v); }
+
+// ═══════════════════════════════════════════════════════
+// ATTENDANCE
+// ═══════════════════════════════════════════════════════
+function renderAttendance() {
+  const batchStudents = students.filter(s => s.batch === 'Batch A');
+  const dates = DAYS.slice(0,7).map((_,i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6-i));
+    return d.toISOString().slice(0,10);
+  });
+
+  document.getElementById('attHead').innerHTML = `<tr>
+    <th>Student</th>
+    ${dates.map(d => `<th>${d.slice(5)}</th>`).join('')}
+    <th>Present</th>
+  </tr>`;
+
+  document.getElementById('attBody').innerHTML = batchStudents.map(s => {
+    let presentCount = 0;
+    const cells = dates.map(d => {
+      const key = `${s.id}-${d}`;
+      const val = attendance[key] || '';
+      if (val === 'P') presentCount++;
+      const cls = val === 'P' ? 'att-present' : val === 'A' ? 'att-absent' : val === 'L' ? 'att-late' : 'att-none';
+      const lbl = val || '—';
+      return `<td><div class="att-cell ${cls}" onclick="cycleAtt(${s.id},'${d}',this)">${lbl}</div></td>`;
+    }).join('');
+    return `<tr>
+      <td><div class="student-cell">
+        <div class="s-avatar" style="background:${COLORS[s.id%COLORS.length]};width:28px;height:28px;font-size:.7rem">${initials(s)}</div>
+        <span style="font-weight:600;font-size:.85rem">${fullName(s)}</span>
+      </div></td>
+      ${cells}
+      <td><b>${presentCount}/${dates.length}</b></td>
+    </tr>`;
+  }).join('');
+}
+
+function cycleAtt(sid, date, el) {
+  const key = `${sid}-${date}`;
+  const cycle = {'':'P','P':'A','A':'L','L':''};
+  attendance[key] = cycle[attendance[key] || ''];
+  const v = attendance[key];
+  el.className = `att-cell ${v==='P'?'att-present':v==='A'?'att-absent':v==='L'?'att-late':'att-none'}`;
+  el.textContent = v || '—';
+  save();
+}
+
+function markAll(val) {
+  const batchStudents = students.filter(s => s.batch === 'Batch A');
+  const today = new Date().toISOString().slice(0,10);
+  batchStudents.forEach(s => { attendance[`${s.id}-${today}`] = val; });
+  save(); renderAttendance();
+  showToast(`✅ Marked all ${val==='P'?'present':'absent'} for today`);
+}
+
+function saveAttendance() { save(); showToast('✅ Attendance saved'); }
+
+// ═══════════════════════════════════════════════════════
+// ASSESSMENTS
+// ═══════════════════════════════════════════════════════
+let scoreTab = 'academic';
+
+function switchScoreTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  scoreTab = tab;
+  renderAssessments();
+}
+
+function renderAssessments() {
+  document.getElementById('assessmentTbody').innerHTML = students.map(s => {
+    const base = scoreTab === 'academic' ? s.acad : s.mock;
+    const t1 = Math.max(0, base - 5 + Math.round(Math.random()*10));
+    const t2 = Math.max(0, base - 3 + Math.round(Math.random()*8));
+    const t3 = Math.max(0, base + Math.round(Math.random()*6));
+    const avg = Math.round((t1+t2+t3)/3);
+    return `<tr>
+      <td><div class="student-cell">
+        <div class="s-avatar" style="background:${COLORS[s.id%COLORS.length]};width:28px;height:28px;font-size:.7rem">${initials(s)}</div>
+        <span style="font-weight:600;font-size:.85rem">${fullName(s)}</span>
+      </div></td>
+      <td><input class="score-input" type="number" value="${t1}" min="0" max="100" onchange="updateScore(${s.id},'t1',this.value)"/></td>
+      <td><input class="score-input" type="number" value="${t2}" min="0" max="100" onchange="updateScore(${s.id},'t2',this.value)"/></td>
+      <td><input class="score-input" type="number" value="${t3}" min="0" max="100" onchange="updateScore(${s.id},'t3',this.value)"/></td>
+      <td><input class="score-input" type="number" value="${Math.round(base*.9)}" min="0" max="100"/></td>
+      <td><b style="color:var(--primary)">${avg}</b></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateScore(sid, field, val) {
+  const s = students.find(s => s.id === sid);
+  if (!s) return;
+  if (scoreTab === 'academic') s.acad = parseInt(val)||0;
+  else s.mock = parseInt(val)||0;
+  save();
+}
+
+function saveScores() { save(); showToast('✅ Scores saved'); }
+
+// ═══════════════════════════════════════════════════════
+// PRESENTATIONS
+// ═══════════════════════════════════════════════════════
+const SLOTS = ['Mon 10am','Mon 2pm','Tue 10am','Tue 2pm','Wed 10am','Wed 2pm','Thu 10am','Thu 2pm','Fri 10am','Fri 2pm','Sat 10am'];
+
+function renderPresentations() {
+  const sorted = [...students].sort((a,b) => a.pres - b.pres);
+  document.getElementById('presentationTbody').innerHTML = sorted.map((s,i) => {
+    const r1 = Math.max(30, s.pres - 8 + Math.round(Math.random()*16));
+    const r2 = Math.max(30, s.pres - 4 + Math.round(Math.random()*12));
+    const r3 = s.pres;
+    const avg = Math.round((r1+r2+r3)/3);
+    const slot = SLOTS[i % SLOTS.length];
+    const done = i < 8;
+    return `<tr>
+      <td><div class="student-cell">
+        <div class="s-avatar" style="background:${COLORS[s.id%COLORS.length]};width:28px;height:28px;font-size:.7rem">${initials(s)}</div>
+        <span style="font-weight:600;font-size:.85rem">${fullName(s)}</span>
+      </div></td>
+      <td>${r1}</td><td>${r2}</td><td>${r3}</td>
+      <td><b>${avg}</b></td>
+      <td style="font-size:.78rem;color:var(--text-2)">${slot}</td>
+      <td><span class="badge ${done?'badge-green':'badge-orange'}">${done?'Done':'Scheduled'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function autoSchedule() {
+  showToast('⚡ Auto-scheduled ' + students.length + ' presentation slots');
+  renderPresentations();
+}
+
+// ═══════════════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════════════
+function renderAlertsFull() {
+  const atRisk = students.filter(s => finalScore(s) < 55);
+  const lowAtt = students.filter(s => s.att < 65 && finalScore(s) >= 55);
+  const allAlerts = [
+    ...atRisk.map(s => ({ icon:'⚑', bg:'#fee2e2', title:`${fullName(s)} — Low Final Score (${finalScore(s)})`, sub:`Batch: ${s.batch} · Attendance: ${s.att}% · Academic: ${s.acad}` })),
+    ...lowAtt.map(s => ({ icon:'📅', bg:'#fef3c7', title:`${fullName(s)} — Low Attendance (${s.att}%)`, sub:`Batch: ${s.batch} · Final Score: ${finalScore(s)}` })),
+  ];
+  document.getElementById('alertsFull').innerHTML = allAlerts.length
+    ? allAlerts.map(a => `<div class="alert-item">
+        <div class="alert-icon" style="background:${a.bg}">${a.icon}</div>
+        <div class="alert-body">
+          <div class="alert-text">${a.title}</div>
+          <div class="alert-sub">${a.sub}</div>
+        </div>
+      </div>`).join('')
+    : '<div style="text-align:center;color:var(--text-3);padding:20px">No alerts — all students are performing well! 🎉</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// ADD / REMOVE
+// ═══════════════════════════════════════════════════════
+function addStudent() {
+  const first = document.getElementById('newFirst').value.trim();
+  const last  = document.getElementById('newLast').value.trim();
+  const email = document.getElementById('newEmail').value.trim();
+  const phone = document.getElementById('newPhone').value.trim();
+  const batch = document.getElementById('newBatch').value;
+  if (!first || !last || !email) { showToast('⚠️ Please fill all required fields'); return; }
+  const id = Date.now();
+  students.push({ id, first, last, email, phone, batch, att:0, acad:0, pres:0, mock:0 });
+  save(); closeModal('addStudentModal'); renderOverview();
+  showToast(`✅ ${first} ${last} added to ${batch}`);
+  document.getElementById('newFirst').value = '';
+  document.getElementById('newLast').value = '';
+  document.getElementById('newEmail').value = '';
+  document.getElementById('newPhone').value = '';
+}
+
+function deleteStudent(id) {
+  students = students.filter(s => s.id !== id);
+  save(); renderStudents(); renderOverview();
+  showToast('🗑️ Student removed');
+}
+
+function addBatch() {
+  const name   = document.getElementById('batchName').value.trim();
+  const course = document.getElementById('batchCourse').value.trim();
+  const start  = document.getElementById('batchStart').value;
+  const end    = document.getElementById('batchEnd').value;
+  if (!name || !course) { showToast('⚠️ Please fill batch name and course'); return; }
+  batches.push({ id: Date.now(), name, course, start, end, max: parseInt(document.getElementById('batchMax').value)||30, color: COLORS[batches.length % COLORS.length], icon:'📚' });
+  save(); closeModal('addBatchModal'); renderBatches();
+  showToast(`✅ ${name} created`);
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORTS
+// ═══════════════════════════════════════════════════════
+function makeCSV(rows, headers) {
+  return [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+}
+function downloadCSV(content, filename) {
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(content);
+  a.download = filename; a.click();
+}
+
+function exportCSV() {
+  const csv = makeCSV(
+    students.map(s => [fullName(s), s.email, s.batch, s.att+'%', s.acad, s.pres, s.mock, finalScore(s), statusOf(s).label]),
+    ['Name','Email','Batch','Attendance','Academic','Presentation','Mock Interview','Final Score','Status']
+  );
+  downloadCSV(csv, 'learnlytics-performance.csv');
+  showToast('📊 Performance report downloaded');
+}
+
+function exportAttCSV() {
+  const csv = makeCSV(
+    students.map(s => [fullName(s), s.batch, s.att+'%', s.att >= 75 ? 'Good' : 'Low']),
+    ['Name','Batch','Attendance %','Status']
+  );
+  downloadCSV(csv, 'learnlytics-attendance.csv');
+  showToast('📋 Attendance sheet downloaded');
+}
+
+function exportLeaderboard() {
+  const sorted = [...students].sort((a,b) => finalScore(b)-finalScore(a));
+  const csv = makeCSV(
+    sorted.map((s,i) => [i+1, fullName(s), s.batch, finalScore(s), statusOf(s).label]),
+    ['Rank','Name','Batch','Final Score','Status']
+  );
+  downloadCSV(csv, 'learnlytics-leaderboard.csv');
+  showToast('🥇 Leaderboard downloaded');
+}
+
+function exportAtRisk() {
+  const atRisk = students.filter(s => finalScore(s) < 55);
+  const csv = makeCSV(
+    atRisk.map(s => [fullName(s), s.email, s.phone, s.batch, s.att+'%', finalScore(s), 'Needs Attention']),
+    ['Name','Email','Phone','Batch','Attendance','Final Score','Action']
+  );
+  downloadCSV(csv, 'learnlytics-at-risk.csv');
+  showToast('⚑ At-risk report downloaded');
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════
+const html = document.documentElement;
+const themeBtn = document.getElementById('themeToggle');
+const saved = localStorage.getItem('ll-theme') || 'light';
+html.setAttribute('data-theme', saved);
+themeBtn.textContent = saved === 'dark' ? '☀️' : '🌙';
+themeBtn.addEventListener('click', () => {
+  const t = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', t);
+  themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('ll-theme', t);
+});
+
+// ═══════════════════════════════════════════════════════
+// AUTH / USER
+// ═══════════════════════════════════════════════════════
+function loadUser() {
+  const u = JSON.parse(localStorage.getItem('ll-user') || 'null');
+  if (u) {
+    const parts = (u.name||'').split(' ');
+    const abb = ((parts[0]||'?')[0] + (parts[1]||'?')[0]).toUpperCase();
+    document.getElementById('userAvatar').textContent = abb;
+    document.getElementById('topbarAvatar').textContent = abb;
+    document.getElementById('userName').textContent = u.name || 'Trainer';
+    document.getElementById('greetName').textContent = parts[0] || 'Trainer';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('ll-user');
+  window.location.href = 'auth.html';
+}
+
+// ═══════════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════════
+document.getElementById('globalSearch').addEventListener('input', function() {
+  if (this.value) { showView('students'); filterStudents(this.value); }
+});
+
+// ═══════════════════════════════════════════════════════
+// MOBILE SIDEBAR
+// ═══════════════════════════════════════════════════════
+if (window.innerWidth <= 1024) {
+  document.getElementById('menuBtn').style.display = 'flex';
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+loadUser();
+renderOverview();
+</script>
+</body>
+</html>

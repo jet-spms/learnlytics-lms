@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPMS — Student Performance Management System</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Offline mode: Supabase CDN not needed — supabase-sync.js is a localStorage stub -->
+  <script>window.supabase = { createClient: () => ({}) };</script>
+  <!-- CSS split (Phase 2) — load order matters -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/profiles.css">
+  <link rel="stylesheet" href="css/calendar.css">
+  <link rel="stylesheet" href="css/student-portal.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <style>
+    /* Supabase sync loading overlay */
+    #sync-overlay {
+      display: none; /* shown/hidden by app.js */
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.82);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .sync-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(241, 245, 249, 0.18);
+      border-top-color: #0277FA;
+      border-radius: 50%;
+      animation: spms-spin 0.75s linear infinite;
+    }
+    @keyframes spms-spin { to { transform: rotate(360deg); } }
+    #sync-overlay-msg {
+      color: #f1f5f9;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+  </style>
+</head>
+<body>
+
+<!-- SB: Supabase sync loading overlay — shown during hydrateUsers / hydrateBatches -->
+<div id="sync-overlay">
+  <div class="sync-spinner"></div>
+  <div id="sync-overlay-msg">Connecting to cloud&hellip;</div>
+</div>
+
+<!-- LOGIN_CHANGE: Auth screen — shown when no user is logged in.
+     Hidden and swapped with #app-shell by UI.setAuthState() in app.js. -->
+<div id="auth-screen" style="display:none"></div>
+
+<!-- STUDENT_PORTAL: Student app shell — shown only when role==='student' is logged in.
+     No sidebar, no batch management, no backup/restore, no admin tools.
+     Rendered by UI.setStudentAuthState() and UI.renderStudentDashboard(). -->
+<div class="app-shell" id="student-shell" style="display:none">
+
+  <!-- Mobile-only header: hamburger to open sidebar on small screens.
+       Hidden on desktop by the shared `@media (min-width:641px) { .app-header { display:none } }` rule. -->
+  <header class="app-header" id="student-mobile-header">
+    <button class="hamburger-btn" id="btn-student-hamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="app-logo">SP<span>MS</span> <span style="font-size:.75rem;font-weight:400;opacity:.6;margin-left:.25rem">Student Portal</span></div>
+  </header>
+
+  <!-- Student Body — sidebar + content area (mirrors trainer layout) -->
+  <div class="app-body">
+
+    <!-- Student Nav Sidebar — rendered by UI.renderStudentSidebar() -->
+    <aside class="nav-sidebar" id="student-sidebar"><!-- rendered by UI.renderStudentSidebar() --></aside>
+
+    <!-- Content area: topbar + scrollable main -->
+    <div class="content-area" id="student-content-area">
+      <!-- Student Content Topbar — rendered by UI.renderStudentTopbar() -->
+      <div class="content-topbar" id="student-content-topbar"></div>
+      <!-- Student Main Content -->
+      <main class="main-content" id="student-main-content" style="padding:1.5rem 2rem;overflow-y:auto">
+        <!-- Rendered by UI.renderStudentDashboard() / UI.renderCalendar() -->
+      </main>
+    </div>
+
+  </div>
+
+</div>
+<!-- Student sidebar mobile backdrop -->
+<div class="sidebar-backdrop" id="student-sidebar-backdrop"></div>
+<!-- Student Profile Drawer (mirrors #profile-drawer for trainer) -->
+<div class="profile-drawer" id="student-profile-drawer"></div>
+<div class="drawer-backdrop" id="student-drawer-backdrop"></div>
+
+<!-- LOGIN_CHANGE: id="app-shell" added so UI.setAuthState() can show/hide the whole app.
+     Starts hidden — app.js reveals it after login check. -->
+<div class="app-shell" id="app-shell" style="display:none">
+
+  <!-- App Header -->
+  <header class="app-header">
+    <button class="hamburger-btn" id="btn-hamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="app-logo new-logo-wrap" id="app-logo">
+      <img src="assets/logo/logo-light.png.svg" class="app-logo-icon spms-logo-img" alt="" aria-hidden="true">
+      <span class="app-logo-text">SPMS</span>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-actions-global">
+      <!-- Backup / Restore moved to Settings page; restore-input kept for content-topbar trigger -->
+      <input type="file" id="restore-input" accept=".json" style="display:none">
+      <button class="btn btn-outline btn-sm" id="dark-toggle" title="Toggle Dark Mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:1rem;height:1rem"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+<!-- Phase 2: header profile avatar — populated by UI.setAuthState() -->
+      <button class="header-avatar-btn" id="btn-header-profile" style="display:none" title="My Profile" aria-label="Open profile">
+        <div id="header-avatar-circle"></div>
+        <div class="header-avatar-info">
+          <span class="header-avatar-name" id="header-avatar-name"></span>
+          <span class="header-avatar-role" id="header-avatar-role"></span>
+        </div>
+      </button>
+      <!-- LOGIN_CHANGE: username pill + logout (kept as fallback during transition) -->
+      <span class="header-username" id="header-username" style="display:none"></span>
+      <button class="btn btn-outline btn-sm header-logout" id="btn-logout" style="display:none" title="Log out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:1rem;height:1rem"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg> Logout</button>
+    </div>
+  </header>
+
+  <!-- App Body -->
+  <div class="app-body">
+
+    <!-- Nav Sidebar — rendered by UI.renderNavSidebar() -->
+    <aside class="nav-sidebar" id="sidebar"><!-- rendered by UI.renderNavSidebar() --></aside>
+
+    <!-- Content Area: topbar + scrollable main -->
+    <div class="content-area" id="content-area">
+      <!-- Content Topbar — rendered by UI.renderContentTopbar() -->
+      <div class="content-topbar" id="content-topbar"></div>
+      <!-- Main Content -->
+      <main class="main-content" id="main-content">
+        <!-- Rendered dynamically by app.js -->
+      </main>
+    </div>
+
+  </div>
+
+  <!-- Profile Drawer — slides in from the right on profile chip click -->
+  <div class="profile-drawer" id="profile-drawer"></div>
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+</div>
+
+<!-- JS modules — order matters: supabase-sync must load after Supabase CDN and before storage.js -->
+<script src="js/supabase-sync.js"></script>
+<script src="js/scoring-config.js"></script><!-- Phase A: admin scoring config singleton — must load before storage, calculations, ui, app -->
+<script src="js/storage.js"></script>
+<script src="js/calculations.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui-icons.js"></script>
+<script src="js/ui-helpers.js"></script>
+<script src="js/ui-calendar.js"></script>
+<script src="js/ui-timetable.js"></script>
+<script src="js/ui-mock.js"></script>
+<script src="js/ui-student-portal.js"></script>
+<script src="js/ui-nav-sidebar.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+<!-- Back to Top button — shown after scrolling 300px in either content area -->
+<button id="back-to-top-btn" aria-label="Back to top" title="Back to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+       stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+    <polyline points="18 15 12 9 6 15"/>
+  </svg>
+</button>
+
+</body>
+</html>

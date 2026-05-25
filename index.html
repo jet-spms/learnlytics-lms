@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — Student Performance Management System</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CDN -->
+  <link rel="stylesheet" href="css/tailwind.css">
+
+  <style>
+    /* ─── Precision Ledger — Design System ─────────────────────────── */
+    :root {
+      --paper:   #F8FAFC;
+      --paper-2: #EBF0F9;
+      --paper-3: #E2E8F0;
+      --ink:     #0F172A;
+      --ink-2:   #334155;
+      --ink-3:   #64748B;
+      --accent:  #0277FA;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink-2);
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body::before { display: none; }
+
+    /* ── Remap font-display to DM Serif Display ── */
+    .font-display { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400 !important; }
+
+    /* ── Color remaps ── */
+    .text-amber       { color: var(--accent); }
+    .hover\:text-amber:hover { color: var(--accent); }
+    .text-blue-400    { color: #2563EB; }
+    .text-emerald-400 { color: #15803D; }
+    .text-purple-400  { color: #7C3AED; }
+    .text-red-400     { color: #DC2626; }
+    .text-ink         { color: var(--paper); }
+    .text-slate-bright { color: var(--ink); }
+    .text-slate-pale  { color: var(--ink); }
+    .text-slate-soft  { color: var(--ink-2); }
+    .text-slate-muted { color: var(--ink-3); }
+    .text-slate-muted\/50 { color: rgba(120,113,108,.5); }
+
+    .bg-amber      { background-color: var(--accent); }
+    .bg-amber\/10  { background-color: rgba(2,119,250,.08); }
+    .bg-amber\/15  { background-color: rgba(2,119,250,.12); }
+    .bg-amber\/20  { background-color: rgba(2,119,250,.15); }
+    .border-amber\/20 { border-color: rgba(2,119,250,.25); }
+    .border-amber\/30 { border-color: var(--accent); }
+    .border-amber\/35 { border-color: rgba(2,119,250,.5); }
+    .bg-ink\/95       { background-color: var(--paper); }
+    .border-ink       { border-color: var(--paper); }
+    .hover\:bg-white\/3:hover { background-color: var(--paper-2); }
+    .bg-blue-spark\/20 { background-color: rgba(37,99,235,.1); }
+    .bg-emerald-500\/20 { background-color: rgba(21,128,61,.1); }
+
+    /* ── Glow blobs — hidden on light page ── */
+    .glow-amber, .glow-blue { display: none; }
+
+    /* ── Section line ── */
+    .section-line { width: 40px; height: 3px; background: var(--accent); border-radius: 0; }
+
+    /* ── Flat accent — replaces gradient text ── */
+    .text-gradient {
+      background: none !important;
+      -webkit-background-clip: initial !important;
+      -webkit-text-fill-color: var(--accent) !important;
+      background-clip: initial !important;
+      color: var(--accent);
+    }
+    .text-gradient-blue {
+      background: none !important;
+      -webkit-background-clip: initial !important;
+      -webkit-text-fill-color: var(--ink) !important;
+      color: var(--ink);
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--paper);
+      border-bottom: 2px solid var(--ink);
+      backdrop-filter: none;
+      transition: none;
+    }
+    .navbar.scrolled { border-bottom-color: var(--ink); box-shadow: none; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      padding: 13px 28px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      box-shadow: none;
+      position: relative;
+      overflow: visible;
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+    .btn-primary::after { display: none; }
+    .btn-primary:hover {
+      transform: none;
+      box-shadow: none;
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--paper);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-2);
+      border: 2px solid var(--paper-3);
+      border-radius: 4px;
+      padding: 13px 28px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+    }
+    .btn-ghost:hover { background: var(--paper-2); border-color: var(--ink); color: var(--ink); }
+
+    /* ── Flat bordered card (replaces glassmorphism) ── */
+    .glass-card {
+      background: var(--paper-2);
+      border: 2px solid var(--paper-3);
+      backdrop-filter: none;
+      transition: border-color 0.18s ease, background 0.18s ease;
+    }
+    .glass-card:hover {
+      border-color: var(--ink);
+      background: #E8E2D8;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ── PI Gauge ── */
+    .pi-gauge { position: relative; width: 140px; height: 140px; }
+    .pi-gauge svg { transform: rotate(-90deg); }
+    .pi-gauge .track { fill: none; stroke: var(--paper-3); stroke-width: 10; }
+    .pi-gauge .fill  { fill: none; stroke: var(--accent); stroke-width: 10; stroke-linecap: round;
+                       stroke-dasharray: 339; stroke-dashoffset: 339;
+                       transition: stroke-dashoffset 1.8s cubic-bezier(0.34,1.56,0.64,1); }
+    .pi-gauge.animate .fill { stroke-dashoffset: 68; }
+
+    /* ── Dashboard mockup bars ── */
+    .mock-bar { height: 8px; border-radius: 0; background: var(--paper-3); overflow: hidden; }
+    .mock-bar-fill { height: 100%; border-radius: 0; background: var(--accent) !important;
+                     width: 0; transition: width 1.4s cubic-bezier(0.34,1.56,0.64,1); }
+    .mock-bar-fill.animate { width: var(--w); }
+
+    /* ── Stat counter ── */
+    .stat-num { font-variant-numeric: tabular-nums; }
+
+    /* ── Step connector ── */
+    .step-line {
+      position: absolute; top: 28px; left: calc(50% + 28px);
+      width: calc(100% - 56px); height: 1px;
+      background: var(--paper-3);
+    }
+
+    /* ── Screenshot box ── */
+    .screenshot-box {
+      background: var(--paper-2);
+      border: 2px solid var(--paper-3);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: none !important;
+    }
+    .screenshot-box .top-bar {
+      height: 40px;
+      background: var(--paper-3);
+      border-bottom: 1px solid var(--paper-3);
+      display: flex; align-items: center; padding: 0 16px; gap: 8px;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; opacity: 0.45; }
+
+    /* ── Pricing card ── */
+    .pricing-card {
+      background: var(--paper-2);
+      border: 2px solid var(--paper-3);
+      border-radius: 6px;
+      transition: border-color 0.18s ease;
+    }
+    .pricing-card.popular {
+      background: var(--ink);
+      border-color: var(--ink);
+      box-shadow: none;
+    }
+    .pricing-card.popular .text-slate-pale,
+    .pricing-card.popular .font-display { color: var(--paper) !important; }
+    .pricing-card.popular .text-slate-soft { color: rgba(248,245,239,.75); }
+    .pricing-card.popular .text-slate-muted { color: rgba(248,245,239,.5); }
+    .pricing-card.popular .text-amber { color: #FCD34D; }
+    .pricing-card.popular .btn-primary {
+      background: var(--paper); color: var(--ink); border-color: var(--paper);
+    }
+    .pricing-card.popular .btn-primary:hover {
+      background: var(--accent); border-color: var(--accent); color: var(--paper);
+    }
+    .pricing-card:hover { transform: none; box-shadow: none; border-color: var(--ink); }
+
+    /* ── FAQ ── */
+    .faq-item summary {
+      list-style: none; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 22px 0;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      color: var(--ink);
+      transition: color 0.18s;
+    }
+    .faq-item summary:hover { color: var(--accent); }
+    .faq-item[open] summary { color: var(--accent); }
+    .faq-item summary .icon { transition: transform 0.3s ease; font-size: 20px; color: var(--ink-3); }
+    .faq-item[open] summary .icon { transform: rotate(45deg); color: var(--accent); }
+    .faq-item .answer { color: var(--ink-3); line-height: 1.75; padding-bottom: 20px; }
+    .faq-item { border-bottom: 1px solid var(--paper-3); }
+
+    /* ── Scroll reveal ── */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.55s ease, transform 0.55s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ── Mobile menu ── */
+    #mobile-menu { display: none; }
+    #mobile-menu.open { display: block; background: var(--paper); border-top: 1px solid var(--paper-3); }
+    #mobile-menu a { color: var(--ink-2); }
+    #mobile-menu a:hover { color: var(--accent); }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--paper-3); }
+
+    /* ── Checkmark list ── */
+    .check-list li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; color: var(--ink-2); }
+    .check-list li::before { content: '✓'; color: var(--accent); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase;
+      background: var(--paper-2);
+      color: var(--accent);
+      border: 1.5px solid var(--paper-3);
+      padding: 5px 12px;
+      border-radius: 3px;
+      font-family: 'Syne', sans-serif;
+    }
+
+    /* ── Footer dark reversal ── */
+    footer {
+      background: var(--ink);
+      border-top: none;
+    }
+    footer .text-slate-bright,
+    footer .text-slate-pale { color: var(--paper); }
+    footer .text-slate-soft  { color: rgba(248,245,239,.7); }
+    footer .text-slate-muted { color: rgba(248,245,239,.45); }
+    footer .text-amber,
+    footer .hover\:text-amber:hover { color: #FCD34D; }
+    footer .divider { background: rgba(248,245,239,.1); }
+    footer .bg-white\/5 { background-color: rgba(248,245,239,.06); }
+    footer .border-white\/08 { border-color: rgba(248,245,239,.1); }
+    footer .hover\:bg-amber\/10:hover { background-color: rgba(252,211,77,.12); }
+    footer a { color: rgba(248,245,239,.7); }
+    footer a:hover { color: #FCD34D; }
+
+    /* ── Border radius — editorial flat (cards/buttons only, not circles) ── */
+    .rounded-2xl { border-radius: 6px; }
+    .rounded-xl  { border-radius: 4px; }
+    .rounded-lg  { border-radius: 4px; }
+
+    /* ── Float animation for hero mockup ── */
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+    /* ── Floating notification cards — offset shadow ── */
+    .glass-card.shadow-card {
+      box-shadow: 3px 3px 0 var(--paper-3);
+    }
+    .shadow-amber-glow { box-shadow: none; }
+    .shadow-card { box-shadow: 3px 3px 0 var(--paper-3); }
+
+    /* ── Stacked avatar border matches page background ── */
+    .-space-x-2 .rounded-full { border-color: var(--paper) !important; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     NAVBAR
+════════════════════════════════════════════════ -->
+<nav class="navbar" id="navbar">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <!-- Logo -->
+    <a href="#" class="flex items-center gap-3">
+      <img src="assets/logo/logo-light.png.svg" class="w-8 h-8" style="object-fit:contain;display:block;" alt="" aria-hidden="true">
+      <span style="font-family:'DM Serif Display',serif;font-size:1.25rem;font-weight:700;letter-spacing:.01em;line-height:1;color:var(--ink);">SPMS</span>
+    </a>
+
+    <!-- Desktop nav -->
+    <ul class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-soft">
+      <li><a href="#features" class="hover:text-amber transition-colors">Features</a></li>
+      <li><a href="#how-it-works" class="hover:text-amber transition-colors">How it works</a></li>
+      <li><a href="#pricing" class="hover:text-amber transition-colors">Pricing</a></li>
+      <li><a href="#faq" class="hover:text-amber transition-colors">FAQ</a></li>
+    </ul>
+
+    <!-- CTA -->
+    <div class="hidden md:flex items-center gap-3">
+      <a href="auth.html"              id="nav-login" class="btn-ghost text-sm py-2.5 px-5">Log in</a>
+      <a href="auth.html?mode=signup"  id="nav-cta"   class="btn-primary text-sm py-2.5 px-5">Get Started Free</a>
+      <a href="auth.html"              id="nav-dashboard" class="btn-primary text-sm py-2.5 px-5" style="display:none">Go to Dashboard →</a>
+    </div>
+
+    <!-- Mobile hamburger -->
+    <button id="hamburger" class="md:hidden text-slate-soft hover:text-amber" onclick="toggleMenu()">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6h18M3 12h18M3 18h18" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="md:hidden border-t border-white/5 px-6 py-4 space-y-3 bg-ink/95">
+    <a href="#features" class="block text-slate-soft hover:text-amber py-2 text-sm" onclick="toggleMenu()">Features</a>
+    <a href="#how-it-works" class="block text-slate-soft hover:text-amber py-2 text-sm" onclick="toggleMenu()">How it works</a>
+    <a href="#pricing" class="block text-slate-soft hover:text-amber py-2 text-sm" onclick="toggleMenu()">Pricing</a>
+    <a href="#faq" class="block text-slate-soft hover:text-amber py-2 text-sm" onclick="toggleMenu()">FAQ</a>
+    <a href="auth.html?mode=signup" class="btn-primary inline-block text-sm text-center mt-2">Get Started Free</a>
+  </div>
+</nav>
+
+
+<!-- ════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════ -->
+<section class="relative min-h-screen flex items-center pt-24 pb-20 overflow-hidden">
+  <!-- Glow blobs -->
+  <div class="glow-amber w-[700px] h-[700px] -top-40 -left-40" style="opacity:.5"></div>
+  <div class="glow-blue  w-[500px] h-[500px] top-20 right-0"   style="opacity:.7"></div>
+
+  <div class="max-w-7xl mx-auto px-6 relative z-10 w-full">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+      <!-- Left: copy -->
+      <div>
+        <div class="badge mb-6 reveal">
+          <span class="w-2 h-2 rounded-full bg-amber inline-block"></span>
+          Now with Cloud Sync
+        </div>
+
+        <h1 class="font-display font-800 text-5xl md:text-6xl lg:text-[64px] leading-[1.06] tracking-tight mb-6 reveal reveal-delay-1">
+          Every student.<br/>
+          Every metric.<br/>
+          <span class="text-gradient">One score.</span>
+        </h1>
+
+        <p class="text-slate-soft text-lg leading-relaxed max-w-lg mb-8 reveal reveal-delay-2">
+          SPMS replaces your attendance sheets, test logs, and spreadsheets with a live
+          <strong class="text-slate-pale font-600">Final Score</strong> — a single weighted score
+          that tells you exactly where every student stands, instantly.
+        </p>
+
+        <div class="flex flex-wrap gap-3 mb-10 reveal reveal-delay-3">
+          <a href="auth.html?mode=signup" id="hero-cta-primary" class="btn-primary">Start Free — No Install Needed</a>
+          <a href="auth.html"             id="hero-cta-dashboard" class="btn-primary" style="display:none">Go to Dashboard →</a>
+          <a href="#how-it-works"                                   class="btn-ghost">See how it works →</a>
+        </div>
+
+        <!-- Social proof strip -->
+        <div class="flex flex-wrap items-center gap-6 text-sm text-slate-muted reveal reveal-delay-4">
+          <div class="flex items-center gap-2">
+            <div class="flex -space-x-2">
+              <div class="w-7 h-7 rounded-full bg-amber/20 border-2 border-ink flex items-center justify-center text-xs text-amber font-700">R</div>
+              <div class="w-7 h-7 rounded-full bg-blue-spark/20 border-2 border-ink flex items-center justify-center text-xs text-blue-400 font-700">P</div>
+              <div class="w-7 h-7 rounded-full bg-emerald-500/20 border-2 border-ink flex items-center justify-center text-xs text-emerald-400 font-700">A</div>
+            </div>
+            <span>Trusted by <strong class="text-slate-pale"><span id="hero-trainer-count">120+</span> trainers</strong></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-amber">★★★★★</span>
+            <span>4.9 / 5 rating</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+            Works offline
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Dashboard mockup -->
+      <div class="relative hidden lg:block reveal reveal-delay-2" style="animation: float 4s ease-in-out infinite;">
+        <div class="screenshot-box shadow-amber-glow" style="box-shadow: 0 0 64px rgba(245,158,11,0.12), 0 32px 80px rgba(0,0,0,0.6);">
+          <div class="top-bar">
+            <div class="dot bg-red-400/80"></div>
+            <div class="dot bg-yellow-400/80"></div>
+            <div class="dot bg-green-400/80"></div>
+            <span class="text-xs text-slate-muted ml-3 font-body">SPMS — Batch Dashboard</span>
+          </div>
+
+          <div class="p-6">
+            <!-- Stats row -->
+            <div class="grid grid-cols-4 gap-3 mb-6">
+              <div class="glass-card rounded-xl p-3 text-center">
+                <div class="text-2xl font-display font-700 text-amber">78%</div>
+                <div class="text-xs text-slate-muted mt-0.5">Avg Att.</div>
+              </div>
+              <div class="glass-card rounded-xl p-3 text-center">
+                <div class="text-2xl font-display font-700 text-blue-400">72.4</div>
+                <div class="text-xs text-slate-muted mt-0.5">Avg Score</div>
+              </div>
+              <div class="glass-card rounded-xl p-3 text-center">
+                <div class="text-2xl font-display font-700 text-emerald-400">34</div>
+                <div class="text-xs text-slate-muted mt-0.5">Students</div>
+              </div>
+              <div class="glass-card rounded-xl p-3 text-center">
+                <div class="text-2xl font-display font-700 text-red-400">3</div>
+                <div class="text-xs text-slate-muted mt-0.5">Flags</div>
+              </div>
+            </div>
+
+            <!-- Student rows -->
+            <div class="space-y-2 mb-4">
+              <div class="text-xs text-slate-muted font-600 uppercase tracking-wider mb-3">Top Students</div>
+              <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/3 transition-colors">
+                <div class="w-7 h-7 rounded-full bg-amber/20 flex items-center justify-center text-xs text-amber font-700">A</div>
+                <div class="flex-1">
+                  <div class="text-sm font-600 text-slate-pale">Arjun Mehta</div>
+                  <div class="mock-bar mt-1 w-full"><div class="mock-bar-fill bg-amber" style="--w:82%; width:82%"></div></div>
+                </div>
+                <div class="text-amber font-display font-700 text-sm">82.5</div>
+              </div>
+              <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/3 transition-colors">
+                <div class="w-7 h-7 rounded-full bg-blue-spark/20 flex items-center justify-center text-xs text-blue-400 font-700">P</div>
+                <div class="flex-1">
+                  <div class="text-sm font-600 text-slate-pale">Priya Sharma</div>
+                  <div class="mock-bar mt-1 w-full"><div class="mock-bar-fill bg-blue-400" style="--w:76%; width:76%"></div></div>
+                </div>
+                <div class="text-blue-400 font-display font-700 text-sm">76.1</div>
+              </div>
+              <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/3 transition-colors">
+                <div class="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-400 font-700">R</div>
+                <div class="flex-1">
+                  <div class="text-sm font-600 text-slate-pale">Rohit Verma</div>
+                  <div class="mock-bar mt-1 w-full"><div class="mock-bar-fill bg-emerald-400" style="--w:69%; width:69%"></div></div>
+                </div>
+                <div class="text-emerald-400 font-display font-700 text-sm">69.3</div>
+              </div>
+            </div>
+
+            <!-- PI gauge row -->
+            <div class="flex items-center justify-between p-3 rounded-xl" style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.12)">
+              <div>
+                <div class="text-xs text-slate-muted mb-1">Institute Avg Score</div>
+                <div class="text-3xl font-display font-700 text-gradient">72.4</div>
+                <div class="text-xs text-emerald-400 mt-1">↑ +4.2 this month</div>
+              </div>
+              <div class="pi-gauge" id="hero-gauge">
+                <svg viewBox="0 0 120 120" width="100" height="100">
+                  <defs>
+                    <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#F59E0B"/>
+                      <stop offset="100%" stop-color="#F97316"/>
+                    </linearGradient>
+                  </defs>
+                  <circle class="track" cx="60" cy="60" r="54"/>
+                  <circle class="fill" id="hero-gauge-fill" cx="60" cy="60" r="54"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <span class="text-sm font-display font-700 text-amber">72%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating notification cards -->
+        <div class="absolute -bottom-6 -left-8 glass-card rounded-xl p-3 flex items-center gap-2.5 shadow-card" style="animation: float 3.5s ease-in-out infinite 0.5s;">
+          <div class="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center text-red-400 text-base">⚑</div>
+          <div>
+            <div class="text-xs font-700 text-slate-pale">Red Flag Alert</div>
+            <div class="text-xs text-slate-muted">Kavya — 3 absences</div>
+          </div>
+        </div>
+        <div class="absolute -top-4 -right-6 glass-card rounded-xl p-3 flex items-center gap-2.5 shadow-card" style="animation: float 3s ease-in-out infinite 1s;">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 text-base">✓</div>
+          <div>
+            <div class="text-xs font-700 text-slate-pale">Quick Class saved</div>
+            <div class="text-xs text-slate-muted">34 students · 12 sec</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bottom fade -->
+  <div class="absolute bottom-0 left-0 right-0 h-24 pointer-events-none" style="background: linear-gradient(to bottom, transparent, #F8FAFC)"></div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     STATS BAND
+════════════════════════════════════════════════ -->
+<section class="relative z-10 py-12">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="divider mb-12"></div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <div class="reveal">
+        <div class="font-display font-800 text-slate-pale mb-2 stat-num" id="stat-trainers" data-target="0"
+             style="font-size:2.75rem;line-height:1;letter-spacing:-0.02em">—</div>
+        <div class="text-xs font-600 uppercase tracking-wider text-slate-muted">Active Trainers</div>
+      </div>
+      <div class="reveal reveal-delay-1">
+        <div class="font-display font-800 text-slate-pale mb-2 stat-num" id="stat-students" data-target="0"
+             style="font-size:2.75rem;line-height:1;letter-spacing:-0.02em">—</div>
+        <div class="text-xs font-600 uppercase tracking-wider text-slate-muted">Students Tracked</div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <div class="font-display font-800 text-slate-pale mb-2 stat-num" id="stat-batches" data-target="0"
+             style="font-size:2.75rem;line-height:1;letter-spacing:-0.02em">—</div>
+        <div class="text-xs font-600 uppercase tracking-wider text-slate-muted">Batches Managed</div>
+      </div>
+      <div class="reveal reveal-delay-3">
+        <div class="font-display font-800 mb-2"
+             style="font-size:2.75rem;line-height:1;letter-spacing:-0.02em;background:linear-gradient(135deg,#22c55e,#16a34a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Zero</div>
+        <div class="text-xs font-600 uppercase tracking-wider text-slate-muted">Servers Required</div>
+      </div>
+    </div>
+    <div class="divider mt-12"></div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     PROBLEM
+════════════════════════════════════════════════ -->
+<section class="py-24 relative overflow-hidden" id="problem">
+  <div class="glow-amber w-[400px] h-[400px] top-0 right-0 opacity-30"></div>
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+
+    <div class="max-w-2xl mb-16 reveal">
+      <div class="section-line mb-5"></div>
+      <h2 class="font-display font-700 text-4xl md:text-5xl leading-tight mb-5">
+        Managing student performance<br/>
+        <span class="text-gradient-blue">is broken.</span>
+      </h2>
+      <p class="text-slate-soft text-lg leading-relaxed">
+        Training institutes run on manual processes. Attendance in one sheet. Test scores in another.
+        Presentation notes lost in a notebook. No one knows who's falling behind until it's too late.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="glass-card rounded-2xl p-7 reveal">
+        <div class="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-2xl mb-5">😩</div>
+        <h3 class="font-display font-700 text-lg text-slate-pale mb-3">Hours wasted on spreadsheets</h3>
+        <p class="text-slate-muted leading-relaxed text-sm">
+          Trainers spend 2–4 hours every week updating attendance logs, computing averages,
+          and reformatting reports that no one reads. Time that should go to teaching.
+        </p>
+      </div>
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-1">
+        <div class="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-2xl mb-5">🔍</div>
+        <h3 class="font-display font-700 text-lg text-slate-pale mb-3">At-risk students go unnoticed</h3>
+        <p class="text-slate-muted leading-relaxed text-sm">
+          Without a unified view, a student can miss 6 classes, fail two tests, and score
+          zero on presentations — and no one notices until the batch review.
+        </p>
+      </div>
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-2">
+        <div class="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-2xl mb-5">📊</div>
+        <h3 class="font-display font-700 text-lg text-slate-pale mb-3">No proof of soft skill progress</h3>
+        <p class="text-slate-muted leading-relaxed text-sm">
+          Communication, confidence, grooming — these matter most for placements, yet no
+          institute tracks them systematically. They exist only as a trainer's gut feeling.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     SOLUTION
+════════════════════════════════════════════════ -->
+<section class="py-24 relative">
+  <div class="glow-blue w-[600px] h-[600px] -bottom-20 -left-40 opacity-50"></div>
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+      <!-- Visual -->
+      <div class="order-2 lg:order-1 reveal">
+        <div class="screenshot-box p-6" style="box-shadow: 0 32px 80px rgba(0,0,0,0.5);">
+          <div class="top-bar -mx-6 -mt-6 mb-6">
+            <div class="dot bg-red-400/80"></div><div class="dot bg-yellow-400/80"></div><div class="dot bg-green-400/80"></div>
+            <span class="text-xs text-slate-muted ml-3">Student Profile — Arjun Mehta</span>
+          </div>
+
+          <div class="flex items-start gap-4 mb-6">
+            <div class="w-14 h-14 rounded-2xl bg-amber/15 flex items-center justify-center text-amber font-display font-800 text-xl border border-amber/20">A</div>
+            <div>
+              <div class="font-display font-700 text-lg text-slate-pale">Arjun Mehta</div>
+              <div class="text-sm text-slate-muted">JKT-IT-A · Enrolled Mar 2025</div>
+              <div class="flex gap-2 mt-2">
+                <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-amber/10 text-amber border border-amber/20">Rank #1</span>
+              </div>
+            </div>
+            <div class="ml-auto text-right">
+              <div class="text-3xl font-display font-800 text-gradient">82.5</div>
+              <div class="text-xs text-slate-muted">Final Score</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-xl p-3" style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.12)">
+              <div class="text-xs text-slate-muted mb-1">Attendance</div>
+              <div class="font-display font-700 text-amber">87%</div>
+              <div class="mock-bar mt-2"><div class="mock-bar-fill bg-amber" style="--w:87%; width:87%"></div></div>
+            </div>
+            <div class="rounded-xl p-3" style="background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.12)">
+              <div class="text-xs text-slate-muted mb-1">Academic</div>
+              <div class="font-display font-700 text-blue-400">79%</div>
+              <div class="mock-bar mt-2"><div class="mock-bar-fill bg-blue-400" style="--w:79%; width:79%"></div></div>
+            </div>
+            <div class="rounded-xl p-3" style="background:rgba(167,139,250,0.06); border:1px solid rgba(167,139,250,0.12)">
+              <div class="text-xs text-slate-muted mb-1">Presentation</div>
+              <div class="font-display font-700 text-purple-400">84%</div>
+              <div class="mock-bar mt-2"><div class="mock-bar-fill bg-purple-400" style="--w:84%; width:84%"></div></div>
+            </div>
+            <div class="rounded-xl p-3" style="background:rgba(52,211,153,0.06); border:1px solid rgba(52,211,153,0.12)">
+              <div class="text-xs text-slate-muted mb-1">Mock Interviews</div>
+              <div class="font-display font-700 text-emerald-400">78%</div>
+              <div class="mock-bar mt-2"><div class="mock-bar-fill bg-emerald-400" style="--w:78%; width:78%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Copy -->
+      <div class="order-1 lg:order-2 reveal reveal-delay-1">
+        <div class="section-line mb-5"></div>
+        <h2 class="font-display font-700 text-4xl md:text-5xl leading-tight mb-6">
+          One system.<br/>
+          <span class="text-gradient">Complete clarity.</span>
+        </h2>
+        <p class="text-slate-soft text-lg leading-relaxed mb-8">
+          SPMS replaces every spreadsheet with a single unified view. Mark attendance in seconds.
+          Scores update automatically. A live Final Score tells you exactly who needs attention
+          — without you having to do any maths.
+        </p>
+        <ul class="check-list space-y-3 text-sm">
+          <li>Final Score tracks five components: <code class="text-amber bg-amber/10 px-1.5 py-0.5 rounded text-xs">Attendance · Academic · Presentation · AI Mock · Manual Mock</code></li>
+          <li>Automatic red-flag alerts when any metric drops below threshold</li>
+          <li>Full student profile with radar chart, trend lines, and exam results</li>
+          <li>Every metric tracked over time — nothing is lost or forgotten</li>
+          <li>Export polished reports to Excel or PDF in one click</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════════ -->
+<section class="py-24" id="features">
+  <div class="max-w-7xl mx-auto px-6">
+
+    <div class="text-center max-w-2xl mx-auto mb-16 reveal">
+      <div class="section-line mx-auto mb-5"></div>
+      <h2 class="font-display font-700 text-4xl md:text-5xl leading-tight mb-4">
+        Built for how <span class="text-gradient">trainers actually work</span>
+      </h2>
+      <p class="text-slate-soft text-lg">
+        Every feature was designed around a real workflow — not around a generic LMS.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <!-- Feature 1 -->
+      <div class="glass-card rounded-2xl p-7 reveal">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-5" style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.2)">⚡</div>
+        <h3 class="font-display font-700 text-base text-slate-pale mb-2">Quick Class</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Mark present, late, or absent for your entire batch with a single click per student. Add remarks. Done in under 60 seconds. Works offline.</p>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-1">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-5" style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2)">📊</div>
+        <h3 class="font-display font-700 text-base text-slate-pale mb-2">Final Score</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">A live weighted composite score — attendance, academics, presentations, and mock interviews — calculated automatically. Admin-configurable weights. Colour-coded for instant reading.</p>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-2">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-5" style="background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.2)">🎤</div>
+        <h3 class="font-display font-700 text-base text-slate-pale mb-2">Presentation Scheduler</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Auto-generates monthly presentation slots. Detects weak skills across 5 dimensions. Re-queues poor performers automatically — no manual planning.</p>
+      </div>
+
+      <!-- Feature 4 -->
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-1">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-5" style="background:rgba(20,184,166,0.1); border:1px solid rgba(20,184,166,0.2)">🛡</div>
+        <h3 class="font-display font-700 text-base text-slate-pale mb-2">Admin Control Center</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Institute-wide view across all batches and trainers. Cross-batch comparison charts. Instructor performance analytics. Student transfer between batches.</p>
+      </div>
+
+      <!-- Feature 5 -->
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-2">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-5" style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2)">📥</div>
+        <h3 class="font-display font-700 text-base text-slate-pale mb-2">One-Click Exports</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Download student list, attendance report, or performance summary as Excel (.xlsx) or a print-ready PDF. No server, no waiting — generated in the browser.</p>
+      </div>
+
+      <!-- Feature 6 -->
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-3">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-5" style="background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.2)">☁️</div>
+        <h3 class="font-display font-700 text-base text-slate-pale mb-2">Offline-First Cloud Sync</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Mark attendance even with no internet. Data syncs to the cloud automatically when reconnected. Log in on any device and see the same data.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     HOW IT WORKS
+════════════════════════════════════════════════ -->
+<section class="py-24 relative" id="how-it-works">
+  <div style="background: linear-gradient(180deg, rgba(245,158,11,0.04) 0%, transparent 100%); position:absolute; inset:0; pointer-events:none;"></div>
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+
+    <div class="text-center max-w-xl mx-auto mb-16 reveal">
+      <div class="section-line mx-auto mb-5"></div>
+      <h2 class="font-display font-700 text-4xl md:text-5xl leading-tight mb-4">
+        Up and running<br/><span class="text-gradient">in minutes</span>
+      </h2>
+      <p class="text-slate-soft">No installation. No IT team. No configuration headaches.</p>
+    </div>
+
+    <div class="grid md:grid-cols-4 gap-6">
+      <div class="text-center relative reveal">
+        <div class="w-14 h-14 rounded-2xl bg-amber/10 border-2 border-amber/30 flex items-center justify-center font-display font-800 text-xl text-amber mx-auto mb-5">1</div>
+        <div class="hidden md:block step-line"></div>
+        <h3 class="font-display font-700 text-slate-pale mb-2">Sign up</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Create your account as a Trainer or Admin. No credit card required.</p>
+      </div>
+      <div class="text-center relative reveal reveal-delay-1">
+        <div class="w-14 h-14 rounded-2xl bg-blue-spark/10 border-2 border-blue-400/30 flex items-center justify-center font-display font-800 text-xl text-blue-400 mx-auto mb-5">2</div>
+        <div class="hidden md:block step-line"></div>
+        <h3 class="font-display font-700 text-slate-pale mb-2">Create a batch</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Add your batch details, add students, and set your schedule in under 5 minutes.</p>
+      </div>
+      <div class="text-center relative reveal reveal-delay-2">
+        <div class="w-14 h-14 rounded-2xl bg-purple-500/10 border-2 border-purple-400/30 flex items-center justify-center font-display font-800 text-xl text-purple-400 mx-auto mb-5">3</div>
+        <div class="hidden md:block step-line"></div>
+        <h3 class="font-display font-700 text-slate-pale mb-2">Start tracking</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Use Quick Class daily. Add test scores. Evaluate presentations. Everything updates live.</p>
+      </div>
+      <div class="text-center reveal reveal-delay-3">
+        <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border-2 border-emerald-400/30 flex items-center justify-center font-display font-800 text-xl text-emerald-400 mx-auto mb-5">4</div>
+        <h3 class="font-display font-700 text-slate-pale mb-2">Export & share</h3>
+        <p class="text-slate-muted text-sm leading-relaxed">Download professional reports for students and management. One click, done.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     SCREENSHOTS
+════════════════════════════════════════════════ -->
+<section class="py-24" id="screenshots">
+  <div class="max-w-7xl mx-auto px-6">
+
+    <div class="text-center max-w-xl mx-auto mb-14 reveal">
+      <div class="section-line mx-auto mb-5"></div>
+      <h2 class="font-display font-700 text-4xl md:text-5xl leading-tight mb-4">
+        See it in action
+      </h2>
+      <p class="text-slate-soft">Every view is designed for clarity — not clutter.</p>
+    </div>
+
+    <!-- Main screenshot -->
+    <div class="screenshot-box mb-6 reveal" style="box-shadow: 0 32px 80px rgba(0,0,0,0.6);">
+      <div class="top-bar">
+        <div class="dot bg-red-400/80"></div><div class="dot bg-yellow-400/80"></div><div class="dot bg-green-400/80"></div>
+        <span class="text-xs text-slate-muted ml-3">Admin Control Center — Institute Overview</span>
+      </div>
+      <div class="p-8 min-h-[280px] flex items-center justify-center">
+        <div class="text-center">
+          <div class="text-5xl mb-4">🛡</div>
+          <div class="font-display font-700 text-xl text-slate-pale mb-2">Admin Control Center</div>
+          <div class="text-sm text-slate-muted max-w-sm">Cross-batch performance comparison chart, all batches overview table, instructor analytics — everything visible from one screen.</div>
+          <div class="mt-6 grid grid-cols-3 gap-4 max-w-lg mx-auto">
+            <div class="rounded-xl p-3 text-center" style="background:rgba(245,158,11,0.07); border:1px solid rgba(245,158,11,0.15)">
+              <div class="text-xl font-display font-700 text-amber">12</div>
+              <div class="text-xs text-slate-muted">Batches</div>
+            </div>
+            <div class="rounded-xl p-3 text-center" style="background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.15)">
+              <div class="text-xl font-display font-700 text-blue-400">8</div>
+              <div class="text-xs text-slate-muted">Trainers</div>
+            </div>
+            <div class="rounded-xl p-3 text-center" style="background:rgba(52,211,153,0.07); border:1px solid rgba(52,211,153,0.15)">
+              <div class="text-xl font-display font-700 text-emerald-400">412</div>
+              <div class="text-xs text-slate-muted">Students</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secondary screenshots -->
+    <div class="grid md:grid-cols-3 gap-5">
+      <div class="screenshot-box reveal">
+        <div class="top-bar">
+          <div class="dot bg-red-400/80"></div><div class="dot bg-yellow-400/80"></div><div class="dot bg-green-400/80"></div>
+          <span class="text-xs text-slate-muted ml-2">Quick Class</span>
+        </div>
+        <div class="p-5 min-h-[180px] flex items-center justify-center text-center">
+          <div>
+            <div class="text-4xl mb-3">⚡</div>
+            <div class="text-sm font-600 text-slate-pale mb-1">Quick Class</div>
+            <div class="text-xs text-slate-muted">Mark all 34 students in under a minute. Offline-first.</div>
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-box reveal reveal-delay-1">
+        <div class="top-bar">
+          <div class="dot bg-red-400/80"></div><div class="dot bg-yellow-400/80"></div><div class="dot bg-green-400/80"></div>
+          <span class="text-xs text-slate-muted ml-2">Batch Timetable</span>
+        </div>
+        <div class="p-5 min-h-[180px] flex items-center justify-center text-center">
+          <div>
+            <div class="text-4xl mb-3">📋</div>
+            <div class="text-sm font-600 text-slate-pale mb-1">Weekly Timetable</div>
+            <div class="text-xs text-slate-muted">6-day schedule grid with holiday overlay and slot management.</div>
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-box reveal reveal-delay-2">
+        <div class="top-bar">
+          <div class="dot bg-red-400/80"></div><div class="dot bg-yellow-400/80"></div><div class="dot bg-green-400/80"></div>
+          <span class="text-xs text-slate-muted ml-2">Export Reports</span>
+        </div>
+        <div class="p-5 min-h-[180px] flex items-center justify-center text-center">
+          <div>
+            <div class="text-4xl mb-3">📥</div>
+            <div class="text-sm font-600 text-slate-pale mb-1">One-Click Reports</div>
+            <div class="text-xs text-slate-muted">Excel + PDF exports. Student list, attendance, performance.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     TESTIMONIALS
+════════════════════════════════════════════════ -->
+<section class="py-24 relative overflow-hidden">
+  <div class="glow-amber w-[500px] h-[500px] top-0 left-1/2 -translate-x-1/2 opacity-20"></div>
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+
+    <div class="text-center max-w-xl mx-auto mb-14 reveal">
+      <div class="section-line mx-auto mb-5"></div>
+      <h2 class="font-display font-700 text-4xl md:text-5xl leading-tight">
+        Trainers who switched <span class="text-gradient">don't go back</span>
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-5">
+      <div class="glass-card rounded-2xl p-7 reveal">
+        <div class="flex gap-1 text-amber mb-4 text-sm">★★★★★</div>
+        <p class="text-slate-soft text-sm leading-relaxed mb-6">
+          "I used to spend every Sunday evening updating my attendance Excel and computing monthly averages.
+          With SPMS it happens automatically. I genuinely get that time back now."
+        </p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-amber/15 border border-amber/20 flex items-center justify-center font-display font-700 text-amber text-sm">R</div>
+          <div>
+            <div class="text-sm font-600 text-slate-pale">Rajesh Kumar</div>
+            <div class="text-xs text-slate-muted">Senior Trainer, IT Institute</div>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-1" style="border-color: rgba(245,158,11,0.2);">
+        <div class="flex gap-1 text-amber mb-4 text-sm">★★★★★</div>
+        <p class="text-slate-soft text-sm leading-relaxed mb-6">
+          "The Final Score is exactly what we needed for placement readiness reports.
+          Parents ask us about their child's progress and we can now show them a real score, not a vague answer."
+        </p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-purple-500/15 border border-purple-500/20 flex items-center justify-center font-display font-700 text-purple-400 text-sm">P</div>
+          <div>
+            <div class="text-sm font-600 text-slate-pale">Priya Nair</div>
+            <div class="text-xs text-slate-muted">Training Head, Vocational Institute</div>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card rounded-2xl p-7 reveal reveal-delay-2">
+        <div class="flex gap-1 text-amber mb-4 text-sm">★★★★★</div>
+        <p class="text-slate-soft text-sm leading-relaxed mb-6">
+          "The admin dashboard showed me that two of my trainers were running batches at completely different
+          quality levels. I would never have known that from my old system of manual monthly summaries."
+        </p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-blue-500/15 border border-blue-500/20 flex items-center justify-center font-display font-700 text-blue-400 text-sm">A</div>
+          <div>
+            <div class="text-sm font-600 text-slate-pale">Aditya Sharma</div>
+            <div class="text-xs text-slate-muted">Director, Training Centre</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     PRICING
+════════════════════════════════════════════════ -->
+<section class="py-24 relative" id="pricing">
+  <div class="glow-blue w-[600px] h-[400px] bottom-0 right-0 opacity-40"></div>
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+
+    <div class="text-center max-w-xl mx-auto mb-14 reveal">
+      <div class="section-line mx-auto mb-5"></div>
+      <h2 class="font-display font-700 text-4xl md:text-5xl leading-tight mb-4">
+        Simple, transparent <span class="text-gradient">pricing</span>
+      </h2>
+      <p class="text-slate-soft">Start free. Scale when you're ready. No hidden fees.</p>
+
+      <!-- Toggle -->
+      <div class="inline-flex items-center gap-3 mt-6 p-1 rounded-xl" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08)">
+        <button id="toggle-monthly" onclick="toggleBilling('monthly')" class="pricing-toggle active px-5 py-2 rounded-lg text-sm font-600 transition-all bg-amber/15 text-amber">Monthly</button>
+        <button id="toggle-annual" onclick="toggleBilling('annual')" class="pricing-toggle px-5 py-2 rounded-lg text-sm font-600 transition-all text-slate-muted hover:text-slate-pale">Annual <span class="text-xs text-emerald-400 ml-1">Save 20%</span></button>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 items-start">
+
+      <!-- Free -->
+      <div class="pricing-card p-8 reveal">
+        <div class="text-sm font-600 text-slate-muted uppercase tracking-wider mb-3">Starter</div>
+        <div class="flex items-end gap-1 mb-1">
+          <span class="font-display font-800 text-4xl text-slate-pale">Free</span>
+        </div>
+        <div class="text-slate-muted text-sm mb-7">Forever — no card needed</div>
+        <ul class="space-y-3 text-sm text-slate-soft mb-8">
+          <li class="flex gap-2"><span class="text-amber">✓</span> 1 trainer account</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> 2 active batches</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> 30 students per batch</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Attendance + Final Score tracking</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Excel export</li>
+          <li class="flex gap-2 text-slate-muted/50"><span>—</span> Admin dashboard</li>
+          <li class="flex gap-2 text-slate-muted/50"><span>—</span> Cloud sync</li>
+        </ul>
+        <a href="auth.html?mode=signup" class="btn-ghost block text-center text-sm py-3">Get Started Free</a>
+      </div>
+
+      <!-- Trainer (popular) -->
+      <div class="pricing-card popular p-8 relative reveal reveal-delay-1" style="margin-top:-8px">
+        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
+          <span class="badge text-xs px-3 py-1">Most Popular</span>
+        </div>
+        <div class="text-sm font-600 text-amber uppercase tracking-wider mb-3">Trainer Pro</div>
+        <div class="flex items-end gap-1 mb-1">
+          <span class="text-slate-muted text-lg font-600 mb-1">₹</span>
+          <span class="font-display font-800 text-4xl text-slate-pale price-val" data-monthly="499" data-annual="399">499</span>
+          <span class="text-slate-muted text-sm mb-1">/mo</span>
+        </div>
+        <div class="text-slate-muted text-sm mb-7">Per trainer, billed monthly</div>
+        <ul class="space-y-3 text-sm text-slate-soft mb-8">
+          <li class="flex gap-2"><span class="text-amber">✓</span> 1 trainer account</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Unlimited batches</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Up to 200 students</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> All tracking features</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Excel + PDF export</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Cloud sync (all devices)</li>
+          <li class="flex gap-2 text-slate-muted/50"><span>—</span> Admin dashboard</li>
+        </ul>
+        <a href="auth.html?mode=signup" class="btn-primary block text-center text-sm py-3">Start Free Trial</a>
+      </div>
+
+      <!-- Institute -->
+      <div class="pricing-card p-8 reveal reveal-delay-2">
+        <div class="text-sm font-600 text-slate-muted uppercase tracking-wider mb-3">Institute</div>
+        <div class="flex items-end gap-1 mb-1">
+          <span class="text-slate-muted text-lg font-600 mb-1">₹</span>
+          <span class="font-display font-800 text-4xl text-slate-pale price-val" data-monthly="2499" data-annual="1999">2,499</span>
+          <span class="text-slate-muted text-sm mb-1">/mo</span>
+        </div>
+        <div class="text-slate-muted text-sm mb-7">Up to 10 trainers</div>
+        <ul class="space-y-3 text-sm text-slate-soft mb-8">
+          <li class="flex gap-2"><span class="text-amber">✓</span> 10 trainer accounts</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Unlimited batches</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Up to 1,000 students</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Admin Control Center</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Cross-batch analytics</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Cloud sync</li>
+          <li class="flex gap-2"><span class="text-amber">✓</span> Priority support</li>
+        </ul>
+        <a href="/cdn-cgi/l/email-protection#5625373a33251625263b2578372626" class="btn-ghost block text-center text-sm py-3">Contact Sales</a>
+      </div>
+
+    </div>
+
+    <!-- Enterprise note -->
+    <div class="text-center mt-10 reveal">
+      <p class="text-slate-muted text-sm">
+        Need more than 10 trainers or white-label branding?
+        <a href="#" class="text-amber hover:underline">Talk to us about Enterprise →</a>
+      </p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     FAQ
+════════════════════════════════════════════════ -->
+<section class="py-24" id="faq">
+  <div class="max-w-3xl mx-auto px-6">
+
+    <div class="text-center mb-14 reveal">
+      <div class="section-line mx-auto mb-5"></div>
+      <h2 class="font-display font-700 text-4xl md:text-5xl leading-tight">
+        Frequently asked <span class="text-gradient">questions</span>
+      </h2>
+    </div>
+
+    <div class="space-y-0 reveal">
+
+      <details class="faq-item">
+        <summary class="font-display font-600 text-base">
+          Do I need to install anything?
+          <span class="icon">+</span>
+        </summary>
+        <p class="answer">No. SPMS runs entirely in your browser — Chrome, Firefox, Edge, Safari. No app to download, no server to configure. Just open the URL and start.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="font-display font-600 text-base">
+          Does it work without internet?
+          <span class="icon">+</span>
+        </summary>
+        <p class="answer">Yes. SPMS is offline-first. Your data is always stored locally in the browser. When you're back online, changes sync automatically to the cloud — no manual action needed.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="font-display font-600 text-base">
+          What is the Final Score exactly?
+          <span class="icon">+</span>
+        </summary>
+        <p class="answer">Final Score is a weighted composite of five components: Attendance, Academic, Presentation, AI Mock, and Manual Mock — each weighted at 20% by default. Admins can customise the weights from the Admin Control Center. It's computed live from your data and shown on every student's profile and the batch dashboard.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="font-display font-600 text-base">
+          Can multiple trainers share the same institute account?
+          <span class="icon">+</span>
+        </summary>
+        <p class="answer">Yes. On the Institute and Enterprise plans, each trainer gets their own login and only sees their own batches. The admin account has institute-wide visibility across all trainers and batches.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="font-display font-600 text-base">
+          What export formats are supported?
+          <span class="icon">+</span>
+        </summary>
+        <p class="answer">You can export Student List, Attendance Report, and Performance Summary as Excel (.xlsx) or PDF. Admin accounts get additional institute-wide reports. All exports are generated directly in the browser — no server needed.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="font-display font-600 text-base">
+          Is my data safe? Who can see it?
+          <span class="icon">+</span>
+        </summary>
+        <p class="answer">Each trainer account is isolated — trainers can only see batches they own. Admin accounts can see all batches in the institute. Data is encrypted at rest in a secure cloud database and also stored locally in your browser for offline access.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="font-display font-600 text-base">
+          Can I migrate my existing data from Excel?
+          <span class="icon">+</span>
+        </summary>
+        <p class="answer">You can import data via the JSON backup/restore feature. If you have existing Excel data, we're building a direct Excel import feature. Contact us and we can assist with manual migration for Institute/Enterprise plans.</p>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     FINAL CTA
+════════════════════════════════════════════════ -->
+<section class="py-28 relative overflow-hidden">
+  <div class="glow-amber w-[800px] h-[400px] inset-0 m-auto opacity-30"></div>
+  <div class="max-w-3xl mx-auto px-6 text-center relative z-10">
+
+    <div class="reveal">
+      <div class="w-16 h-16 rounded-2xl bg-amber/10 border border-amber/20 flex items-center justify-center text-3xl mx-auto mb-8">🎓</div>
+      <h2 class="font-display font-800 text-5xl md:text-6xl leading-[1.05] mb-6">
+        Know exactly where<br/>every student stands.
+        <span class="block text-gradient mt-1">Starting today.</span>
+      </h2>
+      <p class="text-slate-soft text-lg mb-10 max-w-xl mx-auto">
+        Join <span id="cta-trainer-count">120+</span> trainers who replaced their spreadsheets with a live Final Score.
+        No installation. Free forever to start.
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="auth.html?mode=signup" id="final-cta-primary"   class="btn-primary text-base px-8 py-4">Start Free — No Card Required</a>
+        <a href="auth.html"             id="final-cta-dashboard" class="btn-primary text-base px-8 py-4" style="display:none">Go to Dashboard →</a>
+        <a href="#features"                                         class="btn-ghost text-base px-8 py-4">Explore Features</a>
+      </div>
+      <p class="text-slate-muted text-sm mt-8">
+        Works in any browser · Offline-first · Data synced to cloud
+      </p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════ -->
+<footer class="border-t" style="border-color: rgba(255,255,255,0.06);">
+  <div class="max-w-7xl mx-auto px-6 py-14">
+    <div class="grid md:grid-cols-4 gap-10 mb-12">
+
+      <!-- Brand -->
+      <div class="md:col-span-2">
+        <a href="#" class="flex items-center gap-3 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-amber flex items-center justify-center shadow-amber-glow">
+            <span class="text-ink font-display font-800 text-sm">SP</span>
+          </div>
+          <span class="font-display font-700 text-lg text-slate-bright">SPMS</span>
+        </a>
+        <p class="text-slate-muted text-sm leading-relaxed max-w-xs">
+          Student Performance Management System. Built for training institutes that take student outcomes seriously.
+        </p>
+        <div class="flex gap-3 mt-5">
+          <a href="#" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-amber/10 border border-white/08 flex items-center justify-center text-slate-muted hover:text-amber transition-all text-sm">𝕏</a>
+          <a href="#" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-amber/10 border border-white/08 flex items-center justify-center text-slate-muted hover:text-amber transition-all text-sm">in</a>
+        </div>
+      </div>
+
+      <!-- Product -->
+      <div>
+        <div class="text-xs font-700 uppercase tracking-wider text-slate-muted mb-4">Product</div>
+        <ul class="space-y-2.5 text-sm text-slate-soft">
+          <li><a href="#features" class="hover:text-amber transition-colors">Features</a></li>
+          <li><a href="#pricing" class="hover:text-amber transition-colors">Pricing</a></li>
+          <li><a href="#how-it-works" class="hover:text-amber transition-colors">How it works</a></li>
+          <li><a href="#" class="hover:text-amber transition-colors">Changelog</a></li>
+        </ul>
+      </div>
+
+      <!-- Support -->
+      <div>
+        <div class="text-xs font-700 uppercase tracking-wider text-slate-muted mb-4">Support</div>
+        <ul class="space-y-2.5 text-sm text-slate-soft">
+          <li><a href="#faq" class="hover:text-amber transition-colors">FAQ</a></li>
+          <li><a href="#" class="hover:text-amber transition-colors">Contact</a></li>
+          <li><a href="#" class="hover:text-amber transition-colors">Privacy Policy</a></li>
+          <li><a href="#" class="hover:text-amber transition-colors">Terms of Use</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="divider mb-8"></div>
+
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-muted">
+      <span>© 2025 SPMS. All rights reserved.</span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+        All systems operational
+      </span>
+    </div>
+
+  </div>
+</footer>
+
+
+<!-- ════════════════════════════════════════════════
+     JS
+════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // ── Navbar scroll ──────────────────────────────────────────────────────────
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // ── Mobile menu ────────────────────────────────────────────────────────────
+  function toggleMenu() {
+    document.getElementById('mobile-menu').classList.toggle('open');
+  }
+
+  // ── Scroll reveal ──────────────────────────────────────────────────────────
+  const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+  // ── PI gauge animation on enter ───────────────────────────────────────────
+  const gaugeObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('animate'); gaugeObs.unobserve(e.target); } });
+  }, { threshold: 0.5 });
+  const heroGauge = document.getElementById('hero-gauge');
+  if (heroGauge) gaugeObs.observe(heroGauge);
+
+  // ── Stat counter ───────────────────────────────────────────────────────────
+  function animateCount(el) {
+    const target = parseInt(el.dataset.target, 10);
+    if (!target) return;
+    const dur = 1800, step = 16;
+    const inc = target / (dur / step);
+    let cur = 0;
+    const t = setInterval(() => {
+      cur = Math.min(cur + inc, target);
+      el.textContent = target >= 1000
+        ? Math.floor(cur).toLocaleString('en-IN')
+        : Math.floor(cur);
+      if (cur >= target) clearInterval(t);
+    }, step);
+  }
+  const statObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.dataset.observed = 'true';
+        if (parseInt(e.target.dataset.target) > 0) animateCount(e.target);
+        statObs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.6 });
+  document.querySelectorAll('.stat-num[data-target]').forEach(el => statObs.observe(el));
+
+  // ── Live stats from Supabase ───────────────────────────────────────────────
+  (async function fetchLiveStats() {
+    const SB_URL = 'https://clryriidbuglzigwpdem.supabase.co';
+    const SB_KEY = 'sb_publishable_hgjzrPNnI4SfJ4luqj12gg_cmVCfr4t';
+    try {
+      const client = supabase.createClient(SB_URL, SB_KEY);
+      const [trainersRes, batchesRes, batchDataRes] = await Promise.all([
+        client.from('spms_users').select('*', { count: 'exact', head: true }).eq('role', 'trainer'),
+        client.from('spms_batches').select('*', { count: 'exact', head: true }),
+        client.from('spms_batches').select('data')
+      ]);
+      const trainerCount = trainersRes.count ?? 0;
+      const batchCount   = batchesRes.count  ?? 0;
+      const studentCount = (batchDataRes.data || [])
+        .reduce((s, b) => s + (b.data?.students?.length || 0), 0);
+
+      [
+        { id: 'stat-trainers', val: trainerCount },
+        { id: 'stat-students', val: studentCount },
+        { id: 'stat-batches',  val: batchCount   }
+      ].forEach(({ id, val }) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.dataset.target = val;
+        if (val > 0) {
+          el.textContent = '0';
+          if (el.dataset.observed) animateCount(el);
+        }
+      });
+
+      // Update inline trainer count text nodes
+      if (trainerCount > 0) {
+        const label = trainerCount + '+';
+        const hero = document.getElementById('hero-trainer-count');
+        const cta  = document.getElementById('cta-trainer-count');
+        if (hero) hero.textContent = label;
+        if (cta)  cta.textContent  = label;
+      }
+    } catch (_) { /* fail silently — elements keep their default text */ }
+  })();
+
+  // ── Billing toggle ─────────────────────────────────────────────────────────
+  function toggleBilling(mode) {
+    document.getElementById('toggle-monthly').className = `pricing-toggle px-5 py-2 rounded-lg text-sm font-600 transition-all ${mode === 'monthly' ? 'bg-amber/15 text-amber' : 'text-slate-muted hover:text-slate-pale'}`;
+    document.getElementById('toggle-annual').className  = `pricing-toggle px-5 py-2 rounded-lg text-sm font-600 transition-all ${mode === 'annual'  ? 'bg-amber/15 text-amber' : 'text-slate-muted hover:text-slate-pale'}`;
+
+    document.querySelectorAll('.price-val').forEach(el => {
+      const val = mode === 'annual' ? parseInt(el.dataset.annual) : parseInt(el.dataset.monthly);
+      el.textContent = val.toLocaleString('en-IN');
+    });
+  }
+
+  // ── Smooth scroll for anchor links ────────────────────────────────────────
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // ── SPMS Auth routing ──────────────────────────────────────────────────────
+  // Reads the real sessionStorage key written by storage.js (_setSessionUserId).
+  // Key: 'spms_current_user'  Value: user id string (e.g. "u_1704067200000")
+  // If a session exists the user is already logged in → route all primary CTAs
+  // to the dashboard instead of the signup page.
+  (function spmsAuthRouting() {
+    const SESSION_KEY   = 'spms_current_user';
+    const DASHBOARD_URL = 'auth.html';
+    const AUTH_URL      = 'auth.html';
+    const SIGNUP_URL    = 'auth.html?mode=signup';
+
+    const isLoggedIn = !!sessionStorage.getItem(SESSION_KEY);
+
+    if (isLoggedIn) {
+      // ── Show "Go to Dashboard" everywhere, hide "Get Started / Start Free" ──
+
+      // Navbar
+      const navLogin     = document.getElementById('nav-login');
+      const navCta       = document.getElementById('nav-cta');
+      const navDashboard = document.getElementById('nav-dashboard');
+      if (navLogin)     navLogin.style.display     = 'none';
+      if (navCta)       navCta.style.display       = 'none';
+      if (navDashboard) navDashboard.style.display = '';
+
+      // Hero
+      const heroPrimary   = document.getElementById('hero-cta-primary');
+      const heroDashboard = document.getElementById('hero-cta-dashboard');
+      if (heroPrimary)   heroPrimary.style.display   = 'none';
+      if (heroDashboard) heroDashboard.style.display = '';
+
+      // Final CTA section
+      const finalPrimary   = document.getElementById('final-cta-primary');
+      const finalDashboard = document.getElementById('final-cta-dashboard');
+      if (finalPrimary)   finalPrimary.style.display   = 'none';
+      if (finalDashboard) finalDashboard.style.display = '';
+
+      // Pricing CTAs — update all signup-bound buttons to go to dashboard
+      document.querySelectorAll(`a[href="${SIGNUP_URL}"]`).forEach(a => {
+        a.href        = DASHBOARD_URL;
+        a.textContent = 'Go to Dashboard →';
+      });
+
+    } else {
+      // ── Not logged in — all links already point correctly, nothing to do ──
+      // Guard: if someone manually navigates here while logged out, ensure
+      // the nav-dashboard button stays hidden (it already has display:none).
+    }
+
+    // ── Immediate redirect if already logged in and user clicks a CTA ──
+    // Belt-and-suspenders: intercept clicks on any remaining signup links
+    // in case the DOM has already rendered before the script ran.
+    document.addEventListener('click', function onCTAClick(e) {
+      const a = e.target.closest('a');
+      if (!a) return;
+
+      const href = a.getAttribute('href') || '';
+
+      // If user is logged in and clicks anything pointing to auth, redirect to dashboard
+      if (isLoggedIn && (href === AUTH_URL || href === SIGNUP_URL || href.startsWith('auth.html'))) {
+        e.preventDefault();
+        window.location.href = DASHBOARD_URL;
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1165 @@
+/* ================================================================
+   PHASE 6 — Academics screen (Weekly Tests + Module Exams)
+   ================================================================ */
+
+/* Module exam status badges */
+.acad-mod-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .18rem .55rem;
+  border-radius: 5px;
+  font-size: .74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.acad-mod-badge--cleared { background: var(--good-bg);    color: var(--good); }
+.acad-mod-badge--failed  { background: var(--bad-bg);     color: var(--bad);  }
+.acad-mod-badge--pending { background: var(--surface2);   color: var(--text3);}
+
+/* Slide-over: add test form card */
+.acad-add-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.25rem;
+}
+.acad-add-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: .75rem;
+  letter-spacing: .02em;
+}
+
+/* Slideout header with title + subtitle stacked */
+.slideout-header-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  min-width: 0;
+}
+.slideout-subtitle {
+  font-size: .78rem;
+  color: var(--text3);
+  font-weight: 400;
+}
+
+/* Mock history cards (batch-level mock slide-over) */
+.mock-hist-card {
+  padding: .7rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.mock-hist-card:last-child { border-bottom: none; }
+.mock-hist-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .35rem;
+}
+.mock-hist-meta {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.mock-param-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: .25rem .75rem;
+  margin: .35rem 0;
+}
+.mock-param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .8rem;
+  gap: .35rem;
+}
+.mock-param-label { color: var(--text2); }
+.mock-param-val   { font-weight: 600; color: var(--text1); }
+
+/* Legacy mock-drawer-* kept for backward compat */
+.mock-drawer-section-title {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: .85rem;
+  letter-spacing: .01em;
+}
+.mock-drawer-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .65rem;
+  margin-bottom: .65rem;
+}
+.mock-drawer-divider {
+  border-top: 1px solid var(--border);
+  margin: .75rem 0;
+}
+.mock-drawer-score-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .84rem;
+}
+.mock-drawer-score-table th {
+  text-align: left;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text3);
+  padding: .3rem .4rem .5rem;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.mock-drawer-score-table td {
+  padding: .35rem .4rem;
+  color: var(--text1);
+  vertical-align: middle;
+}
+.mock-drawer-score-table td:first-child {
+  font-weight: 500;
+}
+.mock-drawer-score-table tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+.mock-drawer-score-table .form-input--xs {
+  width: 72px;
+}
+
+/* Slide-over: test history */
+.acad-hist-section { }
+.acad-hist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .6rem;
+}
+.acad-hist-count {
+  background: var(--surface2);
+  border-radius: 99px;
+  padding: .1rem .45rem;
+  font-size: .72rem;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.acad-hist-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .55rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.acad-hist-row:last-child { border-bottom: none; }
+.acad-hist-meta {
+  flex: 1;
+  min-width: 0;
+}
+.acad-hist-week {
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+}
+.acad-hist-date {
+  font-size: .74rem;
+  color: var(--text3);
+}
+.acad-hist-empty {
+  font-size: .84rem;
+  color: var(--text3);
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+/* ================================================================
+   PHASE 5 — Manage Batch screen + Settings screen
+   ================================================================ */
+
+.form-grid--3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0 1rem;
+}
+@media (max-width: 640px) {
+  .form-grid--3 { grid-template-columns: 1fr; }
+}
+
+.form-required { color: var(--bad); font-weight: 600; margin-left: .1rem; }
+
+/* ── Manage Batch page layout ───────────────────────────────────── */
+.mb-form { max-width: 720px; }
+
+.mb-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.mb-section-title {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text3);
+  letter-spacing: .02em;
+  margin-bottom: 1rem;
+}
+
+.mb-actions {
+  padding-top: .25rem;
+}
+
+.mb-section-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.mb-count {
+  font-size: .84rem;
+  color: var(--text3);
+  font-weight: 500;
+}
+
+/* Students tab: multiple action buttons in the section bar */
+.mb-section-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+/* Meeting Link: input row */
+.meeting-link-input-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.meeting-link-input-row .form-input {
+  flex: 1;
+}
+
+/* Start Meeting button — sits just below the form */
+.meeting-start-btn {
+  margin-top: .75rem;
+}
+.meeting-start-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* Batch Actions section — danger zone at the bottom of Details tab */
+.batch-danger-zone {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.batch-actions-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+/* Reports tab content */
+.mb-section-desc {
+  font-size: .88rem;
+  color: var(--text3);
+  margin: .25rem 0 1rem;
+  line-height: 1.5;
+}
+
+/* ================================================================
+   END OF PHASE 1 ADDITIONS
+   ================================================================ */
+
+/* ================================================================
+   PHASE 7 — Mock Interviews
+   ================================================================ */
+
+/* Sub-text in session count cell */
+.mock-sub { font-size: .78rem; color: var(--text3); }
+
+/* Attendance badges in slide-over history */
+.mock-badge {
+  display: inline-flex; align-items: center;
+  font-size: .72rem; font-weight: 600;
+  padding: .15rem .5rem;
+  border-radius: 20px;
+}
+.mock-badge--present { background: var(--good-bg);  color: var(--good); }
+.mock-badge--absent  { background: var(--bad-bg);   color: var(--bad);  }
+
+/* Kebab actions column in mock history table */
+.mock-hist-actions-cell {
+  width: 40px;
+  text-align: right;
+  padding-right: .5rem !important;
+}
+
+/* Type badge in mock history table */
+.mock-type-badge {
+  display: inline-flex; align-items: center;
+  font-size: .72rem; font-weight: 700;
+  padding: .15rem .55rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.mock-type-badge--manual { background: #DBEAFE; color: #0260D4; }
+.mock-type-badge--ai     { background: #f3e8ff; color: #7c3aed; }
+body.dark .mock-type-badge--manual { background: #1e3a8a; color: #93C5FD; }
+body.dark .mock-type-badge--ai     { background: #2e1a47; color: #c4b5fd; }
+
+/* 5-parameter score input grid in manual mock slide-over */
+.mock-params-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem 1rem;
+  margin-top: .5rem;
+}
+@media (max-width: 640px) { .mock-params-grid { grid-template-columns: 1fr; } }
+
+/* Score rows in history cards */
+.mock-score-grid {
+  display: flex; flex-direction: column;
+  gap: .2rem;
+  margin: .5rem 0 .4rem;
+  padding: .5rem .6rem;
+  background: var(--surface);
+  border-radius: 7px;
+  border: 1px solid var(--border);
+}
+.mock-score-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .78rem; color: var(--text2);
+}
+.mock-score-row strong { color: var(--text); }
+
+/* Q&A notes in history */
+.mock-qa { margin-top: .4rem; }
+.mock-qa-label {
+  font-size: .72rem; font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  display: block;
+  margin-bottom: .15rem;
+}
+.mock-qa p { font-size: .8rem; color: var(--text2); margin: 0; line-height: 1.4; }
+
+/* ── Phase 11: Admin Screens ────────────────────────────────────── */
+.sync-detail-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: .875rem;
+}
+.sync-detail-row:last-child { border-bottom: none; }
+.sync-detail-label { color: var(--text2); font-weight: 500; }
+.sync-detail-val   { color: var(--text);  font-weight: 600; }
+.sync-online  { color: var(--good); }
+.sync-offline { color: var(--bad);  }
+
+/* ── Student Remarks (Phase 8) ──────────────────────────────────── */
+.rem-tag {
+  display: inline-flex; align-items: center;
+  font-size: .7rem; font-weight: 700;
+  padding: .15rem .5rem; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.rem-tag--manual { background: #DBEAFE; color: #0260D4; }
+.rem-tag--auto   { background: #fef9c3; color: #854d0e; }
+body.dark .rem-tag--manual { background: #1e3a8a; color: #93C5FD; }
+body.dark .rem-tag--auto   { background: #422006; color: #fde68a; }
+
+.rem-note-text {
+  font-size: .82rem; color: var(--text2);
+  margin: .4rem 0 0; line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Live average row below param inputs */
+.mock-avg-row {
+  font-size: .82rem; color: var(--text2);
+  margin-top: .6rem;
+  padding-top: .5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Reminders & Tasks Screen ────────────────────────────────── */
+.rt-screen {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1.5rem 0;
+}
+
+.rt-section {}
+
+.rt-section-header {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin-bottom: .85rem;
+}
+
+/* Collapsible variant — used for Recently Completed */
+.rt-section-header--toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: .5rem .65rem;
+  margin: 0 -.65rem .25rem;
+  border-radius: 8px;
+  font-family: inherit;
+  transition: background .15s ease;
+}
+.rt-section-header--toggle:hover { background: var(--surface2); }
+.rt-toggle-chevron {
+  width: .85rem;
+  height: .85rem;
+  flex-shrink: 0;
+  color: var(--text3);
+  margin-left: auto;
+  transition: transform .2s ease;
+}
+.rt-section-header--open .rt-toggle-chevron { transform: rotate(180deg); }
+
+/* Done list is flex-column when visible */
+.rt-task-list--done[style*="flex"] { display: flex !important; }
+
+/* Make .rt-section-header base margin conditional */
+.rt-section-header:not(.rt-section-header--toggle) { margin-bottom: .85rem;
+}
+
+.rt-section-title {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--text3);
+}
+
+.rt-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 .35rem;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.rt-badge--open { background: var(--warn-bg, #fef3c7); color: var(--warn, #b45309); }
+.rt-badge--done { background: var(--surface2); color: var(--text3); }
+
+.rt-task-list { display: flex; flex-direction: column; gap: .6rem; }
+.rt-task-list--done { opacity: .7; }
+
+.rt-task-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  transition: box-shadow .15s ease;
+}
+.rt-task-card:not(.rt-task-card--done):hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+.rt-task-card--done { background: var(--surface2); border-color: transparent; }
+
+.rt-task-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.rt-task-type {
+  display: inline-flex;
+  align-items: center;
+  padding: .18rem .55rem;
+  border-radius: 6px;
+  background: rgba(2,119,250,.12);
+  color: var(--accent);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.rt-task-streak {
+  font-size: .76rem;
+  color: var(--warn, #b45309);
+  font-weight: 500;
+}
+
+.rt-task-date {
+  margin-left: auto;
+  font-size: .74rem;
+  color: var(--text3);
+}
+
+.rt-task-student {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .88rem;
+  color: var(--text);
+}
+
+.rt-task-icon {
+  width: .95rem;
+  height: .95rem;
+  flex-shrink: 0;
+  color: var(--text3);
+}
+
+.rt-task-batch {
+  font-size: .78rem;
+  color: var(--text3);
+  font-weight: 400;
+  margin-left: .15rem;
+}
+.rt-task-batch::before { content: '·'; margin-right: .35rem; }
+
+.rt-task-action {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  margin-top: .1rem;
+}
+
+.rt-remark-input {
+  flex: 1;
+  font-size: .84rem;
+  padding: .42rem .7rem;
+  border-radius: 8px;
+}
+
+.rt-complete-btn {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--good);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background .15s ease, opacity .15s ease;
+}
+.rt-complete-btn:disabled {
+  background: var(--border);
+  color: var(--text3);
+  cursor: not-allowed;
+  opacity: .55;
+}
+.rt-complete-btn:not(:disabled):hover { background: #15803d; }
+
+.rt-task-done-remark {
+  display: flex;
+  align-items: flex-start;
+  gap: .35rem;
+  font-size: .8rem;
+  color: var(--text2);
+  line-height: 1.4;
+  padding-top: .05rem;
+}
+
+.rt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .65rem;
+  padding: 2.5rem 1rem;
+  color: var(--text3);
+  font-size: .88rem;
+  text-align: center;
+}
+
+.rt-empty-sub {
+  font-size: .8rem;
+  color: var(--text3);
+  padding: .5rem 0;
+}
+
+body.dark .rt-task-card { background: var(--surface); border-color: var(--border); }
+body.dark .rt-task-card--done { background: rgba(255,255,255,.04); border-color: transparent; }
+body.dark .rt-badge--open { background: rgba(251,191,36,.12); color: #fbbf24; }
+body.dark .rt-task-type { background: rgba(2,119,250,.18); }
+
+/* ── Take Attendance — List UI ───────────────────────────────── */
+
+/* Summary strip */
+.qc-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: .5rem .85rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.qc-sum {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text2);
+}
+.qc-sum--present { color: var(--text2); }
+.qc-sum--late    { color: var(--text2); }
+.qc-sum--absent  { color: var(--text2); }
+.qc-sum--unmarked { color: var(--text3); font-weight: 400; }
+.qc-sum-sep { color: var(--border2); user-select: none; }
+
+/* ── List container ──────────────────────────────────────────── */
+.qc-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Column header row */
+.qc-list-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .5rem 1rem;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
+}
+.qc-col-num    { width: 2rem; flex-shrink: 0; text-align: center; }
+.qc-col-info   { flex: 1; }
+.qc-col-status { width: 110px; flex-shrink: 0; }
+
+/* ── Student row ─────────────────────────────────────────────── */
+.qc-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  transition: background .12s ease;
+}
+.qc-row:last-child { border-bottom: none; }
+.qc-row:hover { background: var(--surface2); }
+.qc-row--absent  { background: rgba(239,68,68,.07); border-left: 3px solid rgba(239,68,68,.45); }
+.qc-row--unmarked { opacity: .6; }
+body.dark .qc-row--absent { background: rgba(239,68,68,.11); border-left-color: rgba(239,68,68,.5); }
+
+.qc-row-num {
+  width: 2rem;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--text3);
+}
+.qc-row-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.qc-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+}
+.qc-row-name {
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qc-row-phone {
+  font-size: .75rem;
+  color: var(--text3);
+  font-weight: 400;
+}
+
+/* ── Status dropdown trigger ─────────────────────────────────── */
+.qc-status-select {
+  width: 110px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .35rem;
+  padding: .35rem .65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .15s ease, background .15s ease;
+}
+.qc-status-select:hover { border-color: var(--accent); background: var(--surface2); }
+.qc-status-select.qc-sel--open { border-color: var(--accent); background: var(--surface2); }
+
+.qc-sel-label {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+}
+.qc-sel-chevron {
+  width: .85rem;
+  height: .85rem;
+  flex-shrink: 0;
+  color: var(--text3);
+  transition: transform .18s ease;
+}
+.qc-sel--open .qc-sel-chevron { transform: rotate(180deg); }
+
+/* ── Dropdown popover ────────────────────────────────────────── */
+.qc-dropdown {
+  position: absolute;
+  z-index: 1200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.1), 0 1px 4px rgba(0,0,0,.06);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .14s ease, transform .14s ease;
+  pointer-events: none;
+}
+.qc-dropdown.qc-dropdown--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.qc-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .42rem .7rem;
+  border-radius: 7px;
+  font-size: .83rem;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background .1s ease;
+}
+.qc-dropdown-item:hover { background: var(--surface2); color: var(--text); }
+.qc-dropdown-item--active { color: var(--text); font-weight: 600; }
+.qc-dropdown-check {
+  width: .8rem;
+  height: .8rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+body.dark .qc-dropdown { background: var(--sb-surface); border-color: var(--sb-border); }
+body.dark .qc-dropdown-item:hover { background: var(--sb-surface-2); }
+body.dark .qc-status-select { background: var(--surface); border-color: var(--border); }
+body.dark .qc-status-select:hover,
+body.dark .qc-status-select.qc-sel--open { background: var(--surface2); }
+
+/* ─── Reminders & Tasks — Two-Column Layout & Manual Tasks ──────────────── */
+
+/* Wide variant: removes the 720px cap so both columns breathe */
+.rt-screen--wide { max-width: none; }
+
+/* Screen-level header: title on left, Add Task button on right */
+.rt-screen-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .25rem;
+}
+
+/* Two-column grid — collapses to single column on mobile */
+.rt-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .rt-columns { grid-template-columns: 1fr; }
+}
+
+/* ── Manual task card ── */
+.rt-manual-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  transition: box-shadow .15s ease;
+}
+.rt-manual-card:not(.rt-manual-card--done):hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+.rt-manual-card--done { background: var(--surface2); border-color: transparent; opacity: .75; }
+.rt-manual-card--overdue { border-color: var(--bad); background: var(--bad-bg, #fef2f2); }
+
+.rt-manual-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.rt-manual-title {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.rt-manual-notes {
+  font-size: .8rem;
+  color: var(--text2);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.rt-manual-due {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .74rem;
+  color: var(--text3);
+}
+.rt-manual-due--overdue {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+/* Action icon buttons (edit, delete, tick) */
+.rt-manual-actions {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  flex-shrink: 0;
+}
+.rt-manual-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  transition: background .13s ease, color .13s ease;
+}
+.rt-manual-icon-btn:hover { background: var(--surface2); color: var(--text); }
+.rt-manual-icon-btn--tick:hover { background: var(--good-bg, #dcfce7); color: var(--good); }
+/* Delete button special hover */
+.rt-delete-btn:hover { background: var(--bad-bg, #fef2f2); color: var(--bad); }
+
+/* ── Add / Edit Manual Task Modal ── */
+.rt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.rt-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: rt-modal-in .18s ease;
+}
+@keyframes rt-modal-in {
+  from { opacity: 0; transform: scale(.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1)  translateY(0);    }
+}
+
+.rt-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem .75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.rt-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.rt-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  transition: background .13s ease;
+}
+.rt-modal-close:hover { background: var(--surface2); color: var(--text); }
+
+.rt-modal-body {
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+  overflow-y: auto;
+  max-height: 65vh;
+}
+
+/* Side-by-side date + time fields */
+.rt-modal-row {
+  display: flex;
+  gap: .75rem;
+}
+@media (max-width: 400px) {
+  .rt-modal-row { flex-direction: column; gap: .5rem; }
+}
+
+.rt-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding: .85rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+/* Dark mode overrides */
+body.dark .rt-manual-card { background: var(--surface); border-color: var(--border); }
+body.dark .rt-manual-card--done { background: rgba(255,255,255,.04); border-color: transparent; }
+body.dark .rt-manual-card--overdue { border-color: var(--bad); background: rgba(239,68,68,.08); }
+body.dark .rt-modal { background: var(--surface); border-color: var(--border); }
+body.dark .rt-modal-footer { background: var(--surface2); }
+
+/* ─── RJ-1: Rejoin On section (inside auto Call Connect task cards) ─────── */
+.rt-rejoin-section {
+  border-top: 1px solid var(--border);
+  padding-top: .55rem;
+  margin-top: .55rem;
+}
+
+/* Toggle button — subtle text link with leading icon and trailing chevron */
+.rt-rejoin-toggle {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 500;
+  color: var(--primary);
+  text-align: left;
+  line-height: 1.4;
+}
+.rt-rejoin-toggle:hover { color: var(--primary-dark, var(--primary)); text-decoration: underline; }
+.rt-rejoin-optional   { color: var(--text-muted); font-weight: 400; }
+.rt-rejoin-toggle--open .rt-rejoin-chevron { transform: rotate(180deg); }
+
+/* Expanded fields area */
+.rt-rejoin-fields { margin-top: .55rem; }
+.rt-rejoin-row {
+  display: flex;
+  gap: .6rem;
+  align-items: flex-start;
+}
+.rt-rejoin-group {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  min-width: 0;
+}
+.rt-rejoin-group--wide { flex: 1; }
+.rt-rejoin-label {
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  display: flex;
+  align-items: center;
+}
+.rt-rejoin-date   { width: 9rem; font-size: .8rem; padding: .3rem .5rem; }
+.rt-rejoin-reason { font-size: .8rem; padding: .3rem .5rem; }
+
+/* Dark mode — border colour already inherits from var(--border); no extra rule needed */
+@media (max-width: 480px) {
+  .rt-rejoin-row  { flex-direction: column; }
+  .rt-rejoin-date { width: 100%; }
+}
+
+/* ─── Admin Institute Dashboard ─────────────────────────────────────────── */
+
+/* 4-column responsive KPI grid */
+.admin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 900px) {
+  .admin-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .admin-kpi-grid { grid-template-columns: 1fr; }
+}
+
+/* Base KPI card */
+.admin-kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow);
+  transition: transform var(--trans), box-shadow var(--trans);
+  overflow: hidden;
+  position: relative;
+}
+.admin-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Colored left accent bar per card type */
+.admin-kpi-card--blue   { border-left: 4px solid #0ea5e9; }
+.admin-kpi-card--purple { border-left: 4px solid #6366f1; }
+.admin-kpi-card--green  { border-left: 4px solid var(--good); }
+.admin-kpi-card--amber  { border-left: 4px solid var(--warn); }
+.admin-kpi-card--red    { border-left: 4px solid var(--bad); }
+.admin-kpi-card--gold   { border-left: 4px solid #f59e0b; }
+
+/* Icon circle */
+.admin-kpi-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.admin-kpi-icon svg { width: 1.3rem; height: 1.3rem; }
+
+.admin-kpi-card--blue   .admin-kpi-icon { background: rgba(14,165,233,.12); color: #0ea5e9; }
+.admin-kpi-card--purple .admin-kpi-icon { background: rgba(99,102,241,.12); color: #6366f1; }
+.admin-kpi-card--green  .admin-kpi-icon { background: var(--good-bg);        color: var(--good); }
+.admin-kpi-card--amber  .admin-kpi-icon { background: var(--warn-bg);        color: var(--warn); }
+.admin-kpi-card--red    .admin-kpi-icon { background: var(--bad-bg);         color: var(--bad);  }
+.admin-kpi-card--gold   .admin-kpi-icon { background: rgba(245,158,11,.12); color: #f59e0b; }
+
+/* KPI body text */
+.admin-kpi-body { min-width: 0; }
+.admin-kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.admin-kpi-label {
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--text3);
+  margin-top: .3rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+/* Sub-label: shown on Top Batch card to display batch name */
+.admin-kpi-sub {
+  font-size: .78rem;
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: .2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chart card wrapper */
+.admin-chart-card {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Hint text below chart card header */
+.admin-chart-hint {
+  font-size: .78rem;
+  color: var(--text3);
+  margin: -.25rem 0 .75rem;
+}
+
+/* Dark mode overrides */
+body.dark .admin-kpi-card { background: var(--surface); border-color: var(--border); }
+body.dark .admin-kpi-card--blue   .admin-kpi-icon { background: rgba(14,165,233,.18); }
+body.dark .admin-kpi-card--purple .admin-kpi-icon { background: rgba(99,102,241,.18); }
+body.dark .admin-kpi-card--gold   .admin-kpi-icon { background: rgba(245,158,11,.18); }

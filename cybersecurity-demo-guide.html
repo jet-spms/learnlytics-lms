@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cybersecurity Labs — Live Demo Guide with Real-World Examples</title>
+<style>
+  :root {
+    --bg:      #0F172A;
+    --bg2:     #1E293B;
+    --bg3:     #334155;
+    --teal:    #0D9488;
+    --teal2:   #14B8A6;
+    --blue:    #3B82F6;
+    --purple:  #8B5CF6;
+    --red:     #EF4444;
+    --amber:   #F59E0B;
+    --green:   #10B981;
+    --white:   #F1F5F9;
+    --muted:   #94A3B8;
+    --lit:     #CBD5E1;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--white);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6;}
+  a{color:var(--teal2);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+
+  /* TOP NAV */
+  .topnav{background:var(--bg2);border-bottom:1px solid var(--bg3);padding:0 2rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:0;overflow-x:auto;}
+  .topnav-brand{font-weight:700;font-size:1rem;color:var(--teal2);white-space:nowrap;padding:1rem 1.5rem 1rem 0;border-right:1px solid var(--bg3);margin-right:0.5rem;}
+  .tabnav{display:flex;gap:0;}
+  .tabnav button{background:transparent;border:none;color:var(--muted);padding:1rem 1.2rem;cursor:pointer;font-size:0.85rem;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;}
+  .tabnav button:hover{color:var(--white);}
+  .tabnav button.active{color:var(--teal2);border-bottom-color:var(--teal2);}
+
+  /* HERO */
+  .hero{background:linear-gradient(135deg,#051A18 0%,#0F172A 60%,#1a0a2e 100%);padding:3rem 2rem 2rem;border-bottom:1px solid var(--bg3);}
+  .hero h1{font-size:2rem;font-weight:700;margin-bottom:.5rem;}
+  .hero h1 span{color:var(--teal2);}
+  .hero p{color:var(--muted);max-width:700px;}
+  .badge-row{display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap;}
+  .badge{background:var(--bg2);border:1px solid var(--bg3);padding:.3rem .8rem;border-radius:999px;font-size:.78rem;color:var(--lit);}
+  .badge.green{background:#052e16;border-color:#10B981;color:#6ee7b7;}
+  .badge.amber{background:#451a03;border-color:#F59E0B;color:#fcd34d;}
+  .badge.red{background:#450a0a;border-color:#EF4444;color:#fca5a5;}
+  .badge.blue{background:#0c1a3a;border-color:#3B82F6;color:#93c5fd;}
+
+  /* PAGE TABS */
+  .tab-content{display:none;padding:2rem;}
+  .tab-content.active{display:block;}
+
+  /* SECTIONS */
+  .section{margin-bottom:2.5rem;}
+  .section-title{font-size:1.2rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:.6rem;}
+  .section-title::before{content:'';display:block;width:4px;height:1.4rem;border-radius:2px;background:var(--teal);}
+
+  /* GRIDS */
+  .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.2rem;}
+  .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;}
+  .grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;}
+
+  /* CARDS */
+  .card{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:1.4rem;}
+  .card-title{font-weight:700;margin-bottom:.6rem;font-size:.95rem;}
+  .card p,.card li{color:var(--lit);font-size:.88rem;line-height:1.7;}
+  .card ul,.card ol{padding-left:1.2rem;}
+
+  /* ACCENT CARDS */
+  .card-say{border-left:4px solid var(--green);background:#052e16;}
+  .card-do{border-left:4px solid var(--blue);background:#0c1a3a;}
+  .card-ask{border-left:4px solid var(--amber);background:#451a03;}
+  .card-warn{border-left:4px solid var(--red);background:#450a0a;}
+  .card-real{border-left:4px solid var(--purple);background:#1a0a2e;}
+  .card-tip{border-left:4px solid var(--teal);background:#042f2e;}
+
+  .card-say .card-title{color:#6ee7b7;}
+  .card-do .card-title{color:#93c5fd;}
+  .card-ask .card-title{color:#fcd34d;}
+  .card-warn .card-title{color:#fca5a5;}
+  .card-real .card-title{color:#c4b5fd;}
+  .card-tip .card-title{color:var(--teal2);}
+
+  /* LABELS */
+  .label{display:inline-block;padding:.15rem .6rem;border-radius:4px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-right:.4rem;}
+  .label-say{background:#10B981;color:#000;}
+  .label-do{background:#3B82F6;color:#fff;}
+  .label-ask{background:#F59E0B;color:#000;}
+  .label-warn{background:#EF4444;color:#fff;}
+  .label-real{background:#8B5CF6;color:#fff;}
+  .label-time{background:#1E293B;border:1px solid #334155;color:#CBD5E1;}
+
+  /* EMAIL MOCKUP */
+  .email-mock{background:#1a1a2e;border:1px solid #2d2d4e;border-radius:8px;overflow:hidden;font-size:.85rem;}
+  .email-mock-header{background:#12122a;padding:.8rem 1rem;border-bottom:1px solid #2d2d4e;}
+  .email-mock-header .field{display:flex;gap:.5rem;margin-bottom:.2rem;font-size:.82rem;}
+  .email-mock-header .field span:first-child{color:var(--muted);min-width:55px;}
+  .email-mock-header .field span.red{color:#fca5a5;}
+  .email-mock-header .field span.green{color:#6ee7b7;}
+  .email-mock-body{padding:1rem;}
+  .email-mock-body p{color:var(--lit);margin-bottom:.6rem;font-size:.85rem;}
+  .fake-link{color:#f87171;text-decoration:underline;cursor:default;}
+  .real-link{color:#6ee7b7;}
+
+  /* URL TABLE */
+  .url-table{width:100%;border-collapse:collapse;font-size:.84rem;}
+  .url-table th{background:var(--bg3);padding:.7rem 1rem;text-align:left;font-weight:600;color:var(--lit);}
+  .url-table td{padding:.65rem 1rem;border-bottom:1px solid var(--bg3);vertical-align:top;}
+  .url-table tr:last-child td{border-bottom:none;}
+  .url-table tr:hover{background:rgba(255,255,255,.03);}
+  .status{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .7rem;border-radius:999px;font-size:.76rem;font-weight:600;}
+  .status.legit{background:#052e16;color:#6ee7b7;border:1px solid #10B981;}
+  .status.suspicious{background:#451a03;color:#fcd34d;border:1px solid #F59E0B;}
+  .status.malicious{background:#450a0a;color:#fca5a5;border:1px solid #EF4444;}
+
+  /* TIMELINE */
+  .timeline{position:relative;padding-left:2rem;}
+  .timeline::before{content:'';position:absolute;left:.6rem;top:.3rem;bottom:.3rem;width:2px;background:var(--bg3);}
+  .tl-item{position:relative;margin-bottom:1.4rem;}
+  .tl-item::before{content:counter(step);counter-increment:step;position:absolute;left:-1.9rem;top:.1rem;width:1.4rem;height:1.4rem;background:var(--teal);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#000;}
+  .timeline{counter-reset:step;}
+  .tl-title{font-weight:600;font-size:.9rem;color:var(--white);margin-bottom:.2rem;}
+  .tl-body{color:var(--lit);font-size:.85rem;}
+
+  /* CASE STUDY */
+  .case-header{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--bg3);border-radius:10px 10px 0 0;padding:1.2rem 1.4rem;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;}
+  .case-body{background:var(--bg2);border:1px solid var(--bg3);border-top:none;border-radius:0 0 10px 10px;padding:1.4rem;}
+  .case-title{font-size:1.05rem;font-weight:700;}
+  .case-meta{font-size:.8rem;color:var(--muted);margin-top:.3rem;}
+  .damage-badge{background:#450a0a;border:1px solid var(--red);padding:.3rem .8rem;border-radius:6px;font-size:.8rem;color:#fca5a5;font-weight:600;}
+  .lesson-box{background:#0c1a3a;border:1px solid var(--blue);border-radius:6px;padding:.8rem 1rem;margin-top:1rem;}
+  .lesson-box p{font-size:.84rem;color:#93c5fd;}
+  .lesson-box strong{color:var(--white);}
+
+  /* SETUP CHECKLIST */
+  .check-item{display:flex;align-items:flex-start;gap:.8rem;padding:.6rem 0;border-bottom:1px solid var(--bg3);font-size:.88rem;color:var(--lit);}
+  .check-item:last-child{border-bottom:none;}
+  .check-box{width:1.2rem;height:1.2rem;border:2px solid var(--bg3);border-radius:4px;flex-shrink:0;margin-top:.1rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+  .check-box.done{background:var(--green);border-color:var(--green);}
+  .check-box.done::after{content:'✓';color:#000;font-size:.8rem;font-weight:700;}
+
+  /* TIMING BAR */
+  .time-bar{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:1rem 1.2rem;display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+  .time-bar .part{display:flex;align-items:center;gap:.4rem;font-size:.83rem;color:var(--lit);}
+  .time-bar .part .dot{width:.6rem;height:.6rem;border-radius:50%;flex-shrink:0;}
+  .time-bar strong{color:var(--white);font-size:.95rem;margin-right:.5rem;}
+
+  /* TOOL WALKTHROUGH */
+  .tool-step{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.8rem;display:flex;gap:1rem;align-items:flex-start;}
+  .tool-step-num{background:var(--teal);color:#000;font-weight:700;font-size:.85rem;border-radius:6px;padding:.3rem .6rem;flex-shrink:0;min-width:1.8rem;text-align:center;}
+  .tool-step-body .cmd{background:#0f0f0f;border:1px solid #333;padding:.4rem .8rem;border-radius:4px;font-family:monospace;font-size:.83rem;color:#a5f3fc;margin-top:.3rem;display:inline-block;}
+
+  /* LIVE SCREEN NOTE */
+  .screen-note{background:linear-gradient(135deg,#1a0a2e,#0c1a3a);border:1px dashed var(--purple);border-radius:8px;padding:.9rem 1.2rem;margin-bottom:1rem;font-size:.85rem;color:#c4b5fd;}
+  .screen-note strong{color:var(--white);}
+
+  /* STAT ROW */
+  .stat-row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;}
+  .stat-box{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:1rem 1.4rem;flex:1;min-width:140px;text-align:center;}
+  .stat-box .val{font-size:1.8rem;font-weight:700;line-height:1;}
+  .stat-box .lbl{font-size:.78rem;color:var(--muted);margin-top:.3rem;}
+  .stat-box.red .val{color:var(--red);}
+  .stat-box.amber .val{color:var(--amber);}
+  .stat-box.green .val{color:var(--green);}
+  .stat-box.blue .val{color:var(--blue);}
+
+  /* PASSWORD TABLE */
+  .pw-table{width:100%;border-collapse:collapse;font-size:.84rem;}
+  .pw-table th{background:var(--bg3);padding:.7rem 1rem;text-align:left;font-weight:600;color:var(--lit);}
+  .pw-table td{padding:.65rem 1rem;border-bottom:1px solid var(--bg3);vertical-align:middle;}
+  .strength-bar{height:6px;border-radius:3px;width:100%;background:var(--bg3);}
+  .strength-fill{height:100%;border-radius:3px;}
+
+  /* ACCORDION */
+  details{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;margin-bottom:.8rem;}
+  details summary{padding:1rem 1.2rem;cursor:pointer;font-weight:600;font-size:.9rem;display:flex;justify-content:space-between;align-items:center;list-style:none;user-select:none;}
+  details summary::-webkit-details-marker{display:none;}
+  details summary::after{content:'▶';font-size:.75rem;color:var(--muted);transition:transform .2s;}
+  details[open] summary::after{transform:rotate(90deg);}
+  details[open] summary{border-bottom:1px solid var(--bg3);color:var(--teal2);}
+  details .details-body{padding:1rem 1.2rem;}
+  details .details-body p,.details .details-body li{font-size:.86rem;color:var(--lit);line-height:1.7;}
+  details .details-body ul{padding-left:1.2rem;}
+
+  /* DIVIDER */
+  .divider{border:none;border-top:1px solid var(--bg3);margin:2rem 0;}
+
+  /* ROLE PLAY */
+  .roleplay{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;overflow:hidden;}
+  .roleplay-header{background:var(--bg3);padding:.7rem 1.2rem;font-weight:700;font-size:.88rem;display:flex;gap:.6rem;align-items:center;}
+  .roleplay-body{padding:1rem 1.2rem;}
+  .dialog{margin-bottom:.8rem;}
+  .dialog .who{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.2rem;}
+  .dialog.attacker .who{color:var(--red);}
+  .dialog.defender .who{color:var(--green);}
+  .dialog .line{background:rgba(255,255,255,.04);border-radius:6px;padding:.6rem .9rem;font-size:.85rem;color:var(--lit);}
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
+
+  /* RESPONSIVE */
+  @media(max-width:640px){
+    .tab-content{padding:1rem;}
+    .hero{padding:2rem 1rem 1.5rem;}
+    .hero h1{font-size:1.4rem;}
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-brand">🛡️ Learnlytics Cyber</div>
+  <div class="tabnav">
+    <button class="active" onclick="switchTab('overview',this)">Overview</button>
+    <button onclick="switchTab('lab1',this)">Lab 1 – Phishing</button>
+    <button onclick="switchTab('lab2',this)">Lab 2 – URLs</button>
+    <button onclick="switchTab('lab3',this)">Lab 3 – Passwords</button>
+    <button onclick="switchTab('lab4',this)">Lab 4 – IR Sim</button>
+    <button onclick="switchTab('cases',this)">Real-World Cases</button>
+    <button onclick="switchTab('faq',this)">Trainer FAQ</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Live <span>Demonstration Guide</span> — Cybersecurity Labs</h1>
+  <p>A complete facilitator resource: what to say, what to show on screen, real-world attack examples, and discussion scripts for all four hands-on labs.</p>
+  <div class="badge-row">
+    <span class="badge green">✓ Trainer Script Included</span>
+    <span class="badge amber">⏱ 80 min total runtime</span>
+    <span class="badge blue">🌐 Live Tool Demos</span>
+    <span class="badge red">☠️ Real Attack Examples</span>
+    <span class="badge">👥 Group Exercises</span>
+  </div>
+</div>
+
+<!-- ===== OVERVIEW TAB ===== -->
+<div id="tab-overview" class="tab-content active">
+
+  <div class="section">
+    <div class="section-title">Before You Start — Trainer Setup Checklist</div>
+    <div class="card">
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">Complete these steps <strong>before</strong> participants enter the room. Click each item to mark complete.</p>
+      <div id="setup-list">
+        <div class="check-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Browser tabs open:</strong> virustotal.com, haveibeenpwned.com, web.archive.org, shodan.io (demo only)</div></div>
+        <div class="check-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Screen mirroring active:</strong> project at 1280×720 or higher so URLs are clearly readable</div></div>
+        <div class="check-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Demo email account ready:</strong> a Gmail/Outlook account that has received real (harmless) promotional or phishing emails for live show-and-tell</div></div>
+        <div class="check-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>cybersecurity-labs.html open</strong> in browser — participants work through it on their own devices</div></div>
+        <div class="check-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Printed handout (optional):</strong> URL worksheet from Lab 2 so participants can annotate offline</div></div>
+        <div class="check-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Timer visible:</strong> use a phone or projector timer — each activity has a strict time box</div></div>
+        <div class="check-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Notepad ready:</strong> open a blank text editor for live typing of URLs / notes participants can see</div></div>
+        <div class="check-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Do NOT browse suspicious URLs on company/shared networks</strong> — use mobile hotspot for VirusTotal scans</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Session Schedule (80 min)</div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Full Programme</div>
+        <table style="width:100%;font-size:.85rem;border-collapse:collapse;">
+          <tr><td style="padding:.4rem 0;color:var(--muted);width:70px;">0:00</td><td style="color:var(--lit);">Welcome + Icebreaker (5 min)</td></tr>
+          <tr style="background:rgba(13,148,136,.1);"><td style="padding:.4rem 0;color:var(--teal2);">0:05</td><td style="color:var(--white);font-weight:600;">Lab 1 — Spot the Phish (20 min)</td></tr>
+          <tr><td style="padding:.4rem 0;color:var(--muted);">0:25</td><td style="color:var(--lit);">Lab 2 — URL Analysis (15 min)</td></tr>
+          <tr style="background:rgba(13,148,136,.1);"><td style="padding:.4rem 0;color:var(--teal2);">0:40</td><td style="color:var(--white);font-weight:600;">Lab 3 — Passwords & MFA (15 min)</td></tr>
+          <tr><td style="padding:.4rem 0;color:var(--muted);">0:55</td><td style="color:var(--lit);">Lab 4 — Incident Response (20 min)</td></tr>
+          <tr style="background:rgba(16,185,129,.1);"><td style="padding:.4rem 0;color:var(--green);">1:15</td><td style="color:var(--white);font-weight:600;">Debrief + Q&A (5 min)</td></tr>
+        </table>
+      </div>
+      <div class="card card-tip">
+        <div class="card-title">⚡ Icebreaker Idea (5 min)</div>
+        <p style="margin-bottom:.6rem;">Open with this question on screen:</p>
+        <p style="font-style:italic;color:var(--white);font-size:1rem;margin-bottom:.8rem;">"Has anyone here — or someone they know — ever been tricked by a phishing email or scam call? What happened?"</p>
+        <p>Allow 2–3 volunteers to share briefly. This immediately establishes relevance and breaks down the "it won't happen to me" mindset before any content begins.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Key Statistics to Open With</div>
+    <div class="stat-row">
+      <div class="stat-box red"><div class="val">91%</div><div class="lbl">of cyberattacks start with phishing</div></div>
+      <div class="stat-box amber"><div class="val">$17,700</div><div class="lbl">lost per minute to phishing (globally)</div></div>
+      <div class="stat-box green"><div class="val">1 in 99</div><div class="lbl">emails is a phishing attempt</div></div>
+      <div class="stat-box blue"><div class="val">3 sec</div><div class="lbl">avg time to click a phishing link</div></div>
+    </div>
+    <div class="card card-say">
+      <div class="card-title">💬 SAY THIS to open the stats:</div>
+      <p>"These numbers aren't hypothetical. Every organisation — from small shops to governments — deals with phishing every single day. But here's the good news: <strong>human training is the single most effective defence.</strong> Organisations that train employees reduce phishing click rates by up to 75%. That's what today is about."</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== LAB 1 TAB ===== -->
+<div id="tab-lab1" class="tab-content">
+
+  <div class="time-bar">
+    <strong>Lab 1 — Spot the Phish</strong>
+    <div class="part"><div class="dot" style="background:var(--teal)"></div>Demo intro: 5 min</div>
+    <div class="part"><div class="dot" style="background:var(--blue)"></div>Participants work: 10 min</div>
+    <div class="part"><div class="dot" style="background:var(--amber)"></div>Group review: 5 min</div>
+    <span class="label label-time">⏱ Total: 20 min</span>
+  </div>
+
+  <!-- Real-World Setup -->
+  <div class="section">
+    <div class="section-title">Step 1 — Live Demo: Show a Real Phishing Email</div>
+    <div class="card card-do" style="margin-bottom:1rem;">
+      <div class="card-title">🖥️ DO THIS on screen first</div>
+      <p>Open your demo email inbox and find a phishing/spam email (most inboxes have them in the Spam folder). If none exists, use the mock examples below. Walk through it live using the "SLAM" framework:</p>
+      <ul style="margin-top:.6rem;">
+        <li><strong style="color:#6ee7b7;">S</strong>ender — who actually sent this?</li>
+        <li><strong style="color:#6ee7b7;">L</strong>inks — where do they actually go?</li>
+        <li><strong style="color:#6ee7b7;">A</strong>ttachments — is there anything unexpected?</li>
+        <li><strong style="color:#6ee7b7;">M</strong>essage — does the content feel right?</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- REAL EXAMPLE 1 -->
+  <div class="section">
+    <div class="section-title">Real-World Example 1 — "Your Netflix Account is Suspended"</div>
+    <div class="grid-2">
+      <div>
+        <div class="email-mock">
+          <div class="email-mock-header">
+            <div class="field"><span>From:</span><span class="red">billing-alert@netflix-payments.support</span></div>
+            <div class="field"><span>To:</span><span>you@gmail.com</span></div>
+            <div class="field"><span>Subject:</span><span>⚠️ Your account has been suspended — action required</span></div>
+            <div class="field"><span>Date:</span><span>Today, 11:42 PM</span></div>
+          </div>
+          <div class="email-mock-body">
+            <p>Dear Valued Customer,</p>
+            <p>We were unable to process your most recent payment. <strong>Your account has been temporarily suspended.</strong> To restore access, please update your billing information immediately.</p>
+            <p>⏰ <strong>You have 24 hours</strong> before your account is permanently deleted.</p>
+            <p><a class="fake-link">→ Click here to update your payment details</a></p>
+            <p style="color:#475569;font-size:.78rem;">© Netflix Inc. | Unsubscribe | Privacy Policy</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card card-warn">
+          <div class="card-title">🚩 Red Flags to Point Out</div>
+          <ul>
+            <li><strong>Domain:</strong> <code style="color:#fca5a5;">netflix-payments.support</code> — NOT <code style="color:#6ee7b7;">netflix.com</code>. Real domain is after the last dot before the path: <code style="color:#fcd34d;">netflix-payments.support</code></li>
+            <li><strong>Urgency:</strong> "24 hours before permanent deletion" — classic fear trigger</li>
+            <li><strong>Generic salutation:</strong> "Dear Valued Customer" — Netflix knows your name</li>
+            <li><strong>Sent late at night:</strong> reduces critical thinking</li>
+            <li><strong>Link text ≠ URL:</strong> hover the link — it goes to a different IP</li>
+          </ul>
+        </div>
+        <div class="card card-say" style="margin-top:.8rem;">
+          <div class="card-title">💬 SAY THIS</div>
+          <p>"Notice the sender domain — <em>netflix-payments.support</em>. Attackers register cheap domains that <em>sound</em> official. The real Netflix will always email from @netflix.com. This is domain spoofing — and it works because people read the display name, not the actual address."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REAL EXAMPLE 2 -->
+  <div class="section">
+    <div class="section-title">Real-World Example 2 — Microsoft 365 Password Expiry (Most Common in Offices)</div>
+    <div class="grid-2">
+      <div>
+        <div class="email-mock">
+          <div class="email-mock-header">
+            <div class="field"><span>From:</span><span class="red">IT-Security@microsoftonline-admin.com</span></div>
+            <div class="field"><span>To:</span><span>employee@yourcompany.com</span></div>
+            <div class="field"><span>Subject:</span><span>[Action Required] Your password expires in 1 day</span></div>
+          </div>
+          <div class="email-mock-body">
+            <p>Your Microsoft 365 password will expire in <strong>1 day</strong>.</p>
+            <p>To continue using your Office 365 account without interruption, please reset your password immediately:</p>
+            <p><a class="fake-link">Keep Same Password →</a>&nbsp;&nbsp;<a class="fake-link">Change Password →</a></p>
+            <p style="color:#475569;font-size:.78rem;">Microsoft Corporation | One Microsoft Way | Redmond, WA</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card card-warn">
+          <div class="card-title">🚩 Why This Works So Well</div>
+          <ul>
+            <li>Employees <em>do</em> receive real password-expiry emails — so this seems familiar</li>
+            <li>Domain: <code style="color:#fca5a5;">microsoftonline-admin.com</code> — real is <code style="color:#6ee7b7;">microsoft.com</code></li>
+            <li>Two CTA buttons create choice anxiety — both go to the same phishing page</li>
+            <li>"Keep Same Password" button is crafted to appeal to lazy users</li>
+            <li>Footer copies Microsoft's real address — completely meaningless in email</li>
+          </ul>
+        </div>
+        <div class="card card-ask" style="margin-top:.8rem;">
+          <div class="card-title">❓ ASK THE GROUP</div>
+          <p>"If you saw this email on a Monday morning, rushing before a meeting — what would you do? Hands up if you'd click 'Keep Same Password'?"</p>
+          <p style="margin-top:.5rem;">(This always generates honesty — use it as a teaching moment, not shame.)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REAL EXAMPLE 3 - Spear Phishing -->
+  <div class="section">
+    <div class="section-title">Real-World Example 3 — CEO Spear Phishing (BEC Attack)</div>
+    <div class="grid-2">
+      <div>
+        <div class="email-mock">
+          <div class="email-mock-header">
+            <div class="field"><span>From:</span><span class="red">ahmed.ceo@yourcompany-hq.com</span></div>
+            <div class="field"><span>Display:</span><span class="green">Ahmed Khan (CEO)</span></div>
+            <div class="field"><span>To:</span><span>finance@yourcompany.com</span></div>
+            <div class="field"><span>Subject:</span><span>Urgent — Wire Transfer Needed Today</span></div>
+          </div>
+          <div class="email-mock-body">
+            <p>Hi Sarah,</p>
+            <p>I'm in a meeting and can't talk. I need you to process an urgent wire transfer of <strong>₹45,00,000</strong> to our new vendor. This is time-sensitive for a deal closing today.</p>
+            <p>Please process to:</p>
+            <p>Account: HDFC 1234567890<br>IFSC: HDFC0001234<br>Beneficiary: TechGlobal Solutions Pvt Ltd</p>
+            <p>Reply to confirm once done. Do not discuss with others — NDA applies.</p>
+            <p>Thanks,<br><strong>Ahmed</strong></p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card card-real">
+          <div class="card-title">🌍 Real Incident: FACC Aerospace (2016)</div>
+          <p>Austrian aerospace company FACC lost <strong>€50 million</strong> in a CEO fraud attack. A finance employee received a realistic-looking email from "the CEO" requesting a wire transfer for a confidential acquisition. No verification was done. CEO and CFO were both fired.</p>
+        </div>
+        <div class="card card-warn" style="margin-top:.8rem;">
+          <div class="card-title">🚩 Red Flags</div>
+          <ul>
+            <li>Domain: <code style="color:#fca5a5;">yourcompany-hq.com</code> ≠ <code style="color:#6ee7b7;">yourcompany.com</code></li>
+            <li>"Can't talk" prevents voice verification</li>
+            <li>"Do not discuss with others" — social isolation</li>
+            <li>Urgency + pressure: deal closes today</li>
+            <li>Never ask: would your CEO ever do this over email?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SMS PHISHING -->
+  <div class="section">
+    <div class="section-title">Real-World Example 4 — SMS Phishing (Smishing)</div>
+    <div class="grid-3">
+      <div class="card" style="background:#1a0f00;border-color:#451a03;">
+        <div class="card-title" style="color:#fcd34d;">📱 India Post Smishing</div>
+        <div style="background:#0a0a0a;border-radius:8px;padding:.8rem;font-size:.85rem;color:#d4d4d4;margin:0.5rem 0;">
+          <p style="color:#aaa;font-size:.75rem;margin-bottom:.4rem;">India-POST [SMS]</p>
+          <p>Your package is on hold. Customs fee of ₹49 is due. Pay now to avoid return:</p>
+          <p style="color:#60a5fa;text-decoration:underline;">indiapost-pkg.info/pay</p>
+        </div>
+        <div class="card-title" style="color:#fca5a5;margin-top:.6rem;">Red Flags</div>
+        <ul style="font-size:.82rem;color:var(--lit);">
+          <li>Unofficial domain (not indiapost.gov.in)</li>
+          <li>Small "processing fee" lowers resistance</li>
+          <li>No tracking number mentioned</li>
+        </ul>
+      </div>
+      <div class="card" style="background:#1a0f00;border-color:#451a03;">
+        <div class="card-title" style="color:#fcd34d;">📱 Bank KYC Smishing</div>
+        <div style="background:#0a0a0a;border-radius:8px;padding:.8rem;font-size:.85rem;color:#d4d4d4;margin:0.5rem 0;">
+          <p style="color:#aaa;font-size:.75rem;margin-bottom:.4rem;">SBI-Alert [SMS]</p>
+          <p>Dear Customer, Your SBI account will be BLOCKED due to incomplete KYC. Update now: <span style="color:#60a5fa;text-decoration:underline;">sbi-kyc-update.co.in</span></p>
+        </div>
+        <div class="card-title" style="color:#fca5a5;margin-top:.6rem;">Red Flags</div>
+        <ul style="font-size:.82rem;color:var(--lit);">
+          <li>Real SBI domain is sbi.co.in</li>
+          <li>BLOCKED in caps — fear trigger</li>
+          <li>SBI never requests KYC via SMS link</li>
+        </ul>
+      </div>
+      <div class="card" style="background:#1a0f00;border-color:#451a03;">
+        <div class="card-title" style="color:#fcd34d;">📱 Job Offer WhatsApp</div>
+        <div style="background:#0a0a0a;border-radius:8px;padding:.8rem;font-size:.85rem;color:#d4d4d4;margin:0.5rem 0;">
+          <p style="color:#aaa;font-size:.75rem;margin-bottom:.4rem;">+1-XXX-XXX [WhatsApp]</p>
+          <p>Hi! I'm from Amazon HR. Work from home, earn ₹2000/day. Just click the link and register:</p>
+          <p style="color:#60a5fa;">amazn-jobs.site/register</p>
+        </div>
+        <div class="card-title" style="color:#fca5a5;margin-top:.6rem;">Red Flags</div>
+        <ul style="font-size:.82rem;color:var(--lit);">
+          <li>Foreign phone number</li>
+          <li>Domain: amazn-jobs.site (missing 'o')</li>
+          <li>Unsolicited job offer via WhatsApp</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card card-say" style="margin-top:1rem;">
+      <div class="card-title">💬 SAY THIS</div>
+      <p>"In India, smishing attacks spiked 300% during the UPI payment boom. Attackers specifically mimic RBI, UIDAI, and major banks because people are conditioned to respond to these names. The rule is simple: <strong>never click a link in an SMS</strong>. If your bank needs you, open the official app or call the number on the back of your card."</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Group Review Discussion (5 min)</div>
+    <div class="grid-2">
+      <div class="card card-ask">
+        <div class="card-title">❓ Discussion Questions</div>
+        <ol style="color:var(--lit);font-size:.88rem;padding-left:1.2rem;">
+          <li>Which of the 4 examples would you find hardest to spot on a busy day? Why?</li>
+          <li>What's the ONE thing you'd check first if you got a suspicious email at work?</li>
+          <li>What should you do if you're unsure — click or not click?</li>
+        </ol>
+      </div>
+      <div class="card card-tip">
+        <div class="card-title">✅ Key Takeaways for Lab 1</div>
+        <ul style="color:var(--lit);font-size:.88rem;">
+          <li>Check the <strong>actual sender domain</strong>, not the display name</li>
+          <li>Hover over links — never click without checking</li>
+          <li>Urgency, fear, and scarcity are manipulation tools</li>
+          <li>When in doubt: <strong>don't click, call the sender</strong> through a known number</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== LAB 2 TAB ===== -->
+<div id="tab-lab2" class="tab-content">
+
+  <div class="time-bar">
+    <strong>Lab 2 — URL Analysis</strong>
+    <div class="part"><div class="dot" style="background:var(--teal)"></div>Concept demo: 5 min</div>
+    <div class="part"><div class="dot" style="background:var(--blue)"></div>VirusTotal walkthrough: 5 min</div>
+    <div class="part"><div class="dot" style="background:var(--amber)"></div>Participant exercise: 5 min</div>
+    <span class="label label-time">⏱ Total: 15 min</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Step 1 — The "Real Domain" Rule (On Whiteboard / Screen)</div>
+    <div class="card card-do">
+      <div class="card-title">🖥️ DO THIS: Write these on screen and walk through them</div>
+      <p style="margin-bottom:.8rem;">Rule: <strong>The real domain is always the word immediately before the last dot and TLD</strong></p>
+      <table class="url-table">
+        <thead><tr><th>URL (show on screen)</th><th>Real Domain</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td><code>https://www.paypal.com/signin</code></td><td>paypal.com</td><td><span class="status legit">✓ Legit</span></td></tr>
+          <tr><td><code>https://paypal.com.secure-login.net/account</code></td><td><span style="color:#fca5a5;">secure-login.net</span></td><td><span class="status malicious">☠ Malicious</span></td></tr>
+          <tr><td><code>https://secure.paypa1.com/signin</code></td><td><span style="color:#fcd34d;">paypa1.com</span> (typosquat)</td><td><span class="status malicious">☠ Malicious</span></td></tr>
+          <tr><td><code>https://signin.microsoft.com/auth</code></td><td>microsoft.com</td><td><span class="status legit">✓ Legit</span></td></tr>
+          <tr><td><code>https://microsoft.com.login-verify.xyz/auth</code></td><td><span style="color:#fca5a5;">login-verify.xyz</span></td><td><span class="status malicious">☠ Malicious</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card card-say" style="margin-top:1rem;">
+      <div class="card-title">💬 SAY THIS</div>
+      <p>"Attackers abuse the subdomain system. You can put <em>anything</em> before a dot — so they put 'paypal.com' as a subdomain of their own malicious domain. Your eye sees 'paypal.com' and thinks it's safe. Always find the word immediately before .com / .net / .org / .in — that is the real owner of the website."</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Real-World URL Attack Examples</div>
+    <div class="grid-2">
+      <div class="card card-real">
+        <div class="card-title">🌍 The PayPal RockPhish Campaign (2006–2010)</div>
+        <p>One of the most prolific phishing operations in history used fast-flux DNS with URLs like <code style="color:#fca5a5;">paypa1.com</code> and <code style="color:#fca5a5;">paypa-security.net</code>. At peak, it harvested 50,000+ credentials/day. The campaign lasted 4 years because users couldn't spot the "1" vs "l" switch.</p>
+      </div>
+      <div class="card card-real">
+        <div class="card-title">🌍 Google Docs Phishing (2017)</div>
+        <p>A mass phishing campaign used the real Google OAuth URL but tricked users into granting permissions to a malicious app called "Google Docs." The URL was <strong>legitimately</strong> google.com — but the OAuth permission screen was crafted by attackers. Over 1 million Gmail accounts compromised in under an hour.</p>
+        <p style="margin-top:.5rem;color:#fcd34d;font-size:.82rem;">💡 Lesson: A legit URL alone is not enough — check what you're authorising.</p>
+      </div>
+      <div class="card card-real">
+        <div class="card-title">🌍 COVID-19 WHO URL Scam (2020)</div>
+        <p>Attackers registered hundreds of domains like <code style="color:#fca5a5;">who-covid19-update.com</code>, <code style="color:#fca5a5;">worldhealthorg.info</code>. Emails claimed to be from WHO with "urgent pandemic safety measures." URL shorteners (bit.ly) were also used to hide the destination. WHO's real domain is <code style="color:#6ee7b7;">who.int</code>.</p>
+      </div>
+      <div class="card card-real">
+        <div class="card-title">🌍 SolarWinds Supply Chain (2020)</div>
+        <p>The attackers used the domain <code style="color:#fca5a5;">avsvmcloud.com</code> as a C2 server — completely unrecognisable as malicious by name. 18,000 organisations including US government agencies were affected. This shows attackers also use <strong>completely novel domains</strong> — not just typosquats.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Step 2 — Live VirusTotal Demo (5 min)</div>
+    <div class="screen-note"><strong>Project this on screen.</strong> Open virustotal.com in browser before starting.</div>
+    <div class="tool-step">
+      <div class="tool-step-num">1</div>
+      <div class="tool-step-body">
+        <strong>Navigate to VirusTotal</strong>
+        <div class="cmd">https://www.virustotal.com</div>
+        <p style="font-size:.83rem;color:var(--muted);margin-top:.3rem;">Show participants the clean, simple interface — URL tab, File tab, Search tab</p>
+      </div>
+    </div>
+    <div class="tool-step">
+      <div class="tool-step-num">2</div>
+      <div class="tool-step-body">
+        <strong>Type a known safe URL and scan it</strong>
+        <div class="cmd">https://www.google.com</div>
+        <p style="font-size:.83rem;color:var(--muted);margin-top:.3rem;">Show the green "0/90 vendors flagged" result. Explain: 90 different antivirus engines all analyzed it.</p>
+      </div>
+    </div>
+    <div class="tool-step">
+      <div class="tool-step-num">3</div>
+      <div class="tool-step-body">
+        <strong>Search for a known malicious URL sample</strong>
+        <div class="cmd">Search tab → paste: http://malware.testing.google.test/testing/malware/</div>
+        <p style="font-size:.83rem;color:var(--muted);margin-top:.3rem;">This is Google's own malware test page — VirusTotal shows it as flagged. Show the "DETECTION" and "DETAILS" tabs.</p>
+      </div>
+    </div>
+    <div class="tool-step">
+      <div class="tool-step-num">4</div>
+      <div class="tool-step-body">
+        <strong>Point out key sections of the report</strong>
+        <ul style="font-size:.83rem;color:var(--lit);margin-top:.4rem;">
+          <li><strong>Detection tab:</strong> which engines flagged it and what category (phishing, malware, etc.)</li>
+          <li><strong>Details tab:</strong> IP address, country, creation date of domain (new domains = higher risk)</li>
+          <li><strong>Community tab:</strong> human notes from security researchers</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card card-warn" style="margin-top:1rem;">
+      <div class="card-title">⚠️ Important Caveat to Share</div>
+      <p>"VirusTotal is a tool, not a guarantee. <strong>Zero detections doesn't mean safe</strong> — brand-new phishing sites haven't been analysed yet. Always combine VirusTotal with your own domain analysis. If the domain was registered yesterday and you've never heard of it, treat it as suspicious regardless of the scan result."</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">HTTPS Misconception — "The Lock = Safe" Myth</div>
+    <div class="card card-warn">
+      <div class="card-title">🔓 Busting the Most Dangerous Myth in Cybersecurity</div>
+      <p style="margin-bottom:.6rem;">Over <strong>83% of phishing sites now use HTTPS</strong> (with a padlock). The padlock only means the <em>connection</em> is encrypted — it says nothing about whether the <em>website</em> is legitimate.</p>
+      <p>The padlock means: "Your data is securely transmitted to the thief."</p>
+    </div>
+    <div class="card card-say" style="margin-top:.8rem;">
+      <div class="card-title">💬 SAY THIS (with analogy)</div>
+      <p>"Imagine a sealed envelope. HTTPS means the envelope is sealed — nobody can peek inside while it travels. But if the address on the envelope leads to a criminal's mailbox, sealing it just makes the criminal's job easier. <strong>The padlock tells you nothing about who is receiving your data.</strong>"</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== LAB 3 TAB ===== -->
+<div id="tab-lab3" class="tab-content">
+
+  <div class="time-bar">
+    <strong>Lab 3 — Passwords &amp; MFA</strong>
+    <div class="part"><div class="dot" style="background:var(--teal)"></div>Password demo: 5 min</div>
+    <div class="part"><div class="dot" style="background:var(--blue)"></div>HIBP walkthrough: 5 min</div>
+    <div class="part"><div class="dot" style="background:var(--amber)"></div>MFA setup: 5 min</div>
+    <span class="label label-time">⏱ Total: 15 min</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Real Password Breach Examples to Show</div>
+    <div class="grid-2">
+      <div class="card card-real">
+        <div class="card-title">🌍 RockYou Breach (2009) — Worst Password List Ever</div>
+        <p>32 million plaintext passwords exposed. The top 5 most used:</p>
+        <ol style="margin:.6rem 0;font-family:monospace;color:#fca5a5;font-size:.9rem;padding-left:1.2rem;">
+          <li>123456</li><li>12345</li><li>123456789</li><li>password</li><li>iloveyou</li>
+        </ol>
+        <p>Today the RockYou2021 dataset contains <strong>8.4 billion</strong> breached passwords — used in every major brute-force attack. If your password is on this list, it will be cracked in under 1 second.</p>
+      </div>
+      <div class="card card-real">
+        <div class="card-title">🌍 LinkedIn Breach (2012 → 2016)</div>
+        <p>117 million hashed passwords stolen in 2012 but not cracked until 2016 — then sold on the dark web. Many users had reused these passwords on other sites, leading to a wave of account takeovers at Dropbox, GitHub, and other platforms.</p>
+        <p style="margin-top:.5rem;color:#fcd34d;font-size:.82rem;">💡 Password reuse is the #1 cause of account takeovers. One breach becomes many.</p>
+      </div>
+      <div class="card card-real">
+        <div class="card-title">🌍 SolarWinds — The Password in GitHub (2020)</div>
+        <p>Before the major supply chain attack, a researcher found SolarWinds had published its update server password <code style="color:#fca5a5;">solarwinds123</code> in a public GitHub repository. An intern had uploaded it by mistake. This single password gave initial access to a system used by 18,000 organisations including multiple US government agencies.</p>
+      </div>
+      <div class="card card-real">
+        <div class="card-title">🌍 Colonial Pipeline Ransomware (2021)</div>
+        <p>The attackers used a <strong>single compromised VPN password</strong> (no MFA) found in a previous data breach. They didn't hack any software — they just logged in. The attack shut down fuel supply to the US East Coast for 6 days. The company paid <strong>$4.4 million</strong> in ransom.</p>
+        <p style="margin-top:.5rem;color:#fcd34d;font-size:.82rem;">💡 If Colonial Pipeline had MFA on their VPN, this attack would have been stopped.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Live Password Strength Demo (on screen)</div>
+    <div class="card card-do">
+      <div class="card-title">🖥️ DO THIS: Open a browser and go to passwordmeter.com or use these cracking time estimates</div>
+    </div>
+    <table class="pw-table" style="margin-top:.8rem;">
+      <thead>
+        <tr><th>Password</th><th>Strength</th><th>Estimated Crack Time</th><th>Issue</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>password</code></td>
+          <td><div class="strength-bar"><div class="strength-fill" style="width:5%;background:#EF4444;"></div></div></td>
+          <td style="color:#fca5a5;">Instantly</td>
+          <td>In every wordlist ever created</td>
+        </tr>
+        <tr>
+          <td><code>Password1</code></td>
+          <td><div class="strength-bar"><div class="strength-fill" style="width:15%;background:#EF4444;"></div></div></td>
+          <td style="color:#fca5a5;">2 seconds</td>
+          <td>Predictable substitution — attackers know this pattern</td>
+        </tr>
+        <tr>
+          <td><code>P@ssw0rd!</code></td>
+          <td><div class="strength-bar"><div class="strength-fill" style="width:25%;background:#F59E0B;"></div></div></td>
+          <td style="color:#fcd34d;">3 minutes</td>
+          <td>Common "l33t speak" — in every advanced dictionary</td>
+        </tr>
+        <tr>
+          <td><code>Ahmed2024!</code></td>
+          <td><div class="strength-bar"><div class="strength-fill" style="width:30%;background:#F59E0B;"></div></div></td>
+          <td style="color:#fcd34d;">7 minutes</td>
+          <td>Name + year + symbol — ultra-predictable personal password</td>
+        </tr>
+        <tr>
+          <td><code>horse-battery-staple-9</code></td>
+          <td><div class="strength-bar"><div class="strength-fill" style="width:75%;background:#10B981;"></div></div></td>
+          <td style="color:#6ee7b7;">550 years</td>
+          <td>Passphrase — long, random, memorable</td>
+        </tr>
+        <tr>
+          <td><code>xK7@m#Lq9$Pz2!</code></td>
+          <td><div class="strength-bar"><div class="strength-fill" style="width:100%;background:#10B981;"></div></div></td>
+          <td style="color:#6ee7b7;">Centuries</td>
+          <td>Best — but only usable with a password manager</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="card card-say" style="margin-top:1rem;">
+      <div class="card-title">💬 SAY THIS</div>
+      <p>"Notice that P@ssw0rd! is technically 'complex' — uppercase, lowercase, number, symbol. But it cracks in 3 minutes because attackers have huge dictionaries of exactly these substitutions. <strong>Length beats complexity every time.</strong> A 4-word passphrase is more secure than a 10-character symbol soup — and you can actually remember it."</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Live HaveIBeenPwned Demo (5 min)</div>
+    <div class="screen-note"><strong>Project this on screen.</strong> Open haveibeenpwned.com before starting.</div>
+    <div class="tool-step">
+      <div class="tool-step-num">1</div>
+      <div class="tool-step-body">
+        <strong>Navigate to the site</strong>
+        <div class="cmd">https://haveibeenpwned.com</div>
+        <p style="font-size:.83rem;color:var(--muted);margin-top:.3rem;">Show the home page — simple text box. Explain Troy Hunt built this; it's trusted by governments and security teams worldwide.</p>
+      </div>
+    </div>
+    <div class="tool-step">
+      <div class="tool-step-num">2</div>
+      <div class="tool-step-body">
+        <strong>Search with a known-breached example</strong>
+        <div class="cmd">test@example.com</div>
+        <p style="font-size:.83rem;color:var(--muted);margin-top:.3rem;">This returns results showing it's been in multiple breaches. Point out: breach name, date, what data was exposed.</p>
+      </div>
+    </div>
+    <div class="tool-step">
+      <div class="tool-step-num">3</div>
+      <div class="tool-step-body">
+        <strong>Show the "Passwords" tab</strong>
+        <div class="cmd">https://haveibeenpwned.com/Passwords</div>
+        <p style="font-size:.83rem;color:var(--muted);margin-top:.3rem;">Type "password" — show it's been seen 9+ million times. Type "horse-battery-staple" — 0 times. This proves why unique passphrases matter.</p>
+      </div>
+    </div>
+    <div class="tool-step">
+      <div class="tool-step-num">4</div>
+      <div class="tool-step-body">
+        <strong>Ask participants to check their own (optional)</strong>
+        <p style="font-size:.83rem;color:var(--muted);margin-top:.3rem;">HIBP only checks if the email appears in known breach datasets — it does NOT expose the actual password. It's completely safe to enter your email here. Encourage participants to check on their own devices.</p>
+      </div>
+    </div>
+    <div class="card card-ask" style="margin-top:1rem;">
+      <div class="card-title">❓ ASK THE GROUP</div>
+      <p>"Who here uses the same password for more than one account? (Show of hands.) If one of those accounts gets breached, attackers will try that same password on every other site you use — this is called <strong>credential stuffing</strong>. Last year, 193 billion credential stuffing attempts were recorded globally."</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">MFA — Why It Stops 99.9% of Attacks</div>
+    <div class="grid-2">
+      <div class="card card-tip">
+        <div class="card-title">🔐 Microsoft Research Finding</div>
+        <p>Microsoft's own data shows that enabling MFA blocks <strong>99.9% of automated account compromise attacks</strong>. Even if an attacker has your exact password, without the second factor they cannot get in.</p>
+        <p style="margin-top:.6rem;">The Colonial Pipeline attack was stopped — only in hindsight — because: VPN had no MFA. If MFA had been enabled, the breach would not have occurred.</p>
+      </div>
+      <div class="card card-do">
+        <div class="card-title">🖥️ LIVE: Set Up Google Authenticator Demo</div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-title">Go to myaccount.google.com</div><div class="tl-body">Sign in → Security tab → 2-Step Verification</div></div>
+          <div class="tl-item"><div class="tl-title">Select "Authenticator App"</div><div class="tl-body">Choose Google Authenticator or Microsoft Authenticator</div></div>
+          <div class="tl-item"><div class="tl-title">Scan the QR code</div><div class="tl-body">Open app → + icon → Scan QR code → camera</div></div>
+          <div class="tl-item"><div class="tl-title">Enter the 6-digit code</div><div class="tl-body">Code refreshes every 30 seconds — this is TOTP (Time-based One-Time Password)</div></div>
+          <div class="tl-item"><div class="tl-title">Save backup codes</div><div class="tl-body">Critical — if you lose your phone, these are your recovery method</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== LAB 4 TAB ===== -->
+<div id="tab-lab4" class="tab-content">
+
+  <div class="time-bar">
+    <strong>Lab 4 — Incident Response Simulation</strong>
+    <div class="part"><div class="dot" style="background:var(--teal)"></div>Real case study: 5 min</div>
+    <div class="part"><div class="dot" style="background:var(--blue)"></div>Role play exercise: 10 min</div>
+    <div class="part"><div class="dot" style="background:var(--amber)"></div>Form + debrief: 5 min</div>
+    <span class="label label-time">⏱ Total: 20 min</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Step 1 — Real Incident: Twitter Hack 2020</div>
+    <div class="card card-real" style="margin-bottom:1rem;">
+      <div class="card-title">🌍 The Twitter/X Bitcoin Scam Hack — July 15, 2020</div>
+      <p style="margin-bottom:.6rem;"><strong>What happened:</strong> Attackers (a 17-year-old and accomplices) called Twitter employees pretending to be IT support. They socially-engineered staff into providing access credentials to internal admin tools. They then hijacked 130 high-profile accounts including:</p>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin:.6rem 0;">
+        <span class="badge">Barack Obama</span><span class="badge">Joe Biden</span><span class="badge">Elon Musk</span><span class="badge">Bill Gates</span><span class="badge">Apple</span><span class="badge">Jeff Bezos</span>
+      </div>
+      <p>The hijacked accounts all posted: <em>"I'm giving back to the community due to COVID-19. Send Bitcoin and I'll double it."</em></p>
+      <p style="margin-top:.6rem;color:#fcd34d;"><strong>Result:</strong> $120,000 in Bitcoin stolen in hours. 3 arrested. Twitter's stock dropped 4% the next day.</p>
+    </div>
+    <div class="grid-2">
+      <div class="card card-warn">
+        <div class="card-title">🚩 The Attack Chain</div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-title">Phone call to Twitter employees</div><div class="tl-body">Pretending to be internal IT, asked employees to go to a fake VPN login page</div></div>
+          <div class="tl-item"><div class="tl-title">Credentials harvested in real-time</div><div class="tl-body">Attackers entered them immediately into the real Twitter internal system</div></div>
+          <div class="tl-item"><div class="tl-title">MFA bypass via SIM swap</div><div class="tl-body">For employees with MFA, attackers simultaneously SIM-swapped their phones to intercept the OTP</div></div>
+          <div class="tl-item"><div class="tl-title">Admin access to high-profile accounts</div><div class="tl-body">Used "agent tools" to take over verified accounts and post the Bitcoin scam</div></div>
+        </div>
+      </div>
+      <div class="card card-say">
+        <div class="card-title">💬 SAY THIS</div>
+        <p>"The Twitter hack didn't use any zero-day exploits. No sophisticated malware. The attackers simply called people on the phone and asked nicely — pretending to be IT. This is social engineering at scale. And it worked on employees of one of the world's most security-conscious companies. <strong>What would you do if you got that call?</strong>"</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonial Pipeline -->
+  <div class="section">
+    <div class="section-title">Real Incident 2 — Colonial Pipeline (Know the Full Story)</div>
+    <div class="grid-2">
+      <div class="card card-real">
+        <div class="card-title">🌍 Colonial Pipeline Ransomware Attack — May 2021</div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-title">Day 0 — Credential breach found on dark web</div><div class="tl-body">Attackers found a VPN username and password from a previous data breach. The employee had reused their password.</div></div>
+          <div class="tl-item"><div class="tl-title">Day 0 — Logged into VPN (no MFA)</div><div class="tl-body">Single factor VPN. No second verification. Attackers gained access to the corporate network.</div></div>
+          <div class="tl-item"><div class="tl-title">Day 1–5 — DarkSide ransomware deployed</div><div class="tl-body">100GB data exfiltrated before encryption. All operational systems encrypted.</div></div>
+          <div class="tl-item"><div class="tl-title">Day 6 — Pipeline shut down</div><div class="tl-body">Gas supply to US East Coast disrupted. Panic buying. $4.4M ransom paid in Bitcoin.</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="card card-ask">
+          <div class="card-title">❓ Discussion: What Should Have Stopped This?</div>
+          <ol style="color:var(--lit);font-size:.86rem;padding-left:1.2rem;">
+            <li>MFA on the VPN (the single biggest fix)</li>
+            <li>Dark web monitoring for leaked credentials</li>
+            <li>Password manager so the employee wouldn't reuse passwords</li>
+            <li>Network segmentation so OT (operational tech) was isolated from IT</li>
+            <li>Regular security awareness training</li>
+          </ol>
+        </div>
+        <div class="damage-badge" style="display:block;text-align:center;margin-top:1rem;padding:1rem;border-radius:8px;">
+          Total Damage Estimate: <span style="font-size:1.3rem;">$4.4M ransom + $500M+ in economic disruption</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE ROLE PLAY -->
+  <div class="section">
+    <div class="section-title">Step 2 — Live Role Play: The Urgent IT Call</div>
+    <div class="card card-do" style="margin-bottom:1rem;">
+      <div class="card-title">🖥️ DO THIS: Pick 2 volunteers — one is the "attacker (fake IT support)", one is the "employee"</div>
+      <p>The attacker reads the Attacker Script below. The employee must decide when — and whether — to comply. The group watches and identifies warning signs.</p>
+    </div>
+    <div class="roleplay">
+      <div class="roleplay-header">📞 Scenario: Vishing (Voice Phishing) Role Play</div>
+      <div class="roleplay-body">
+        <div class="dialog attacker"><div class="who">🔴 Attacker (Fake IT Support)</div><div class="line">"Hi, this is Rahul from the IT helpdesk. We've detected some unusual login activity on your account and we need to verify your identity before your access gets automatically locked in the next 10 minutes. Can you confirm your username and current password?"</div></div>
+        <div class="dialog defender"><div class="who">🟢 Employee Response (discuss with group)</div><div class="line">What should the employee say here? (Guide: don't give password — ask for ticket number, offer to call IT back on the official number)</div></div>
+        <div class="dialog attacker"><div class="who">🔴 Attacker escalates</div><div class="line">"I understand your caution but this is critical — our security team is standing by and your account will be suspended in the next 5 minutes if we don't resolve this right now. I just need a quick verification. Your manager Priya already approved this check."</div></div>
+        <div class="dialog defender"><div class="who">🟢 Employee Response</div><div class="line">What now? (Guide: "I'm going to hang up and call the IT helpdesk on the official number to verify this request." Then do so.)</div></div>
+        <div class="dialog attacker"><div class="who">🔴 Attacker's Final Attempt</div><div class="line">"Look, I've been doing this for 10 years. Just give me your email and I'll send you the verification link myself. It'll take 30 seconds."</div></div>
+        <div class="dialog defender"><div class="who">🟢 Correct Final Response</div><div class="line">"I'm sorry, I'm going to follow our IT policy and report this call to my manager. Thank you." [Hangs up. Reports to IT security team immediately.]</div></div>
+      </div>
+    </div>
+    <div class="card card-ask" style="margin-top:1rem;">
+      <div class="card-title">❓ Debrief Questions for Group</div>
+      <ol style="color:var(--lit);font-size:.88rem;padding-left:1.2rem;">
+        <li>Which specific phrases did the attacker use to create urgency and pressure?</li>
+        <li>What was the "authority" element? ("Your manager already approved...")</li>
+        <li>At what point would most people in real life have given the password? Why?</li>
+        <li>What is your company's actual process for IT support calls? Do you know the real number?</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Step 3 — Incident Report Walkthrough</div>
+    <div class="card card-do">
+      <div class="card-title">🖥️ DO THIS: Open cybersecurity-labs.html → Lab 4 section → Incident Report Form</div>
+      <p>Walk participants through filling the form using this scenario:</p>
+      <div style="background:#1a0a2e;border:1px solid var(--purple);border-radius:8px;padding:1rem;margin-top:.8rem;font-size:.85rem;color:#c4b5fd;">
+        <strong>Scenario to use:</strong> You received the Microsoft 365 password expiry email from Lab 1 (sender: IT-Security@microsoftonline-admin.com). You hovered the link and noticed it pointed to a suspicious domain. You did NOT click. Now fill the incident report.
+      </div>
+      <ul style="margin-top:.8rem;font-size:.85rem;color:var(--lit);">
+        <li><strong>Reporter Name:</strong> [Participant fills their own name]</li>
+        <li><strong>Threat Type:</strong> Phishing Email</li>
+        <li><strong>Sender:</strong> IT-Security@microsoftonline-admin.com</li>
+        <li><strong>Subject:</strong> [Action Required] Your password expires in 1 day</li>
+        <li><strong>Suspicious Links:</strong> microsoftonline-admin.com (not microsoft.com)</li>
+        <li><strong>Red Flags:</strong> Fake domain, urgency, two CTA buttons</li>
+        <li><strong>Action Taken:</strong> Did not click. Reported to IT security. Forwarded email to security@company.com</li>
+      </ul>
+    </div>
+    <div class="card card-say" style="margin-top:1rem;">
+      <div class="card-title">💬 Key Message to Close Lab 4</div>
+      <p>"Reporting is not tattling — it is a security service. When you report a phishing email, your IT team can block the sender, warn other employees, and update email filters. <strong>One report can prevent hundreds of colleagues from being attacked.</strong> The cost of reporting is zero. The cost of silence can be millions."</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CASE STUDIES TAB ===== -->
+<div id="tab-cases" class="tab-content">
+
+  <div class="section">
+    <div class="section-title">5 Real-World Attacks — Use These During Your Training</div>
+
+    <!-- Case 1 -->
+    <div style="margin-bottom:1.5rem;">
+      <div class="case-header">
+        <div>
+          <div class="case-title">1. The Podesta Email Hack — 2016 US Election</div>
+          <div class="case-meta">Attack Type: Spear Phishing · Target: Hillary Clinton Campaign · Attacker: APT28 (Russian state)</div>
+        </div>
+        <div class="damage-badge">Impact: US Election disruption</div>
+      </div>
+      <div class="case-body">
+        <div class="grid-2">
+          <div>
+            <p style="font-size:.86rem;color:var(--lit);margin-bottom:.8rem;"><strong>What happened:</strong> John Podesta, Clinton's campaign chairman, received an email claiming to be from Google: "Someone has your password. Change it immediately." The email linked to a fake Google login page. His aide checked with IT and was mistakenly told it was "legitimate." Podesta entered his credentials. 50,000+ emails stolen and published on WikiLeaks.</p>
+            <p style="font-size:.86rem;color:var(--lit);">The IT person meant to type "This is an ILLEGITIMATE email" but typed "legitimate" by accident — one word changed the course of history.</p>
+          </div>
+          <div>
+            <div class="lesson-box">
+              <p><strong>Lessons for Training:</strong></p>
+              <ul style="font-size:.83rem;margin-top:.4rem;padding-left:1rem;">
+                <li>Even senior, educated targets fall for phishing</li>
+                <li>Verbal confirmations can go wrong — always use written, official channels</li>
+                <li>Google never emails you about password compromises via links — it alerts you in-app</li>
+                <li>Always navigate to sensitive sites directly, never via email links</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Case 2 -->
+    <div style="margin-bottom:1.5rem;">
+      <div class="case-header">
+        <div>
+          <div class="case-title">2. The WannaCry Ransomware — NHS UK (2017)</div>
+          <div class="case-meta">Attack Type: Ransomware via phishing + unpatched systems · Target: NHS Hospitals across UK</div>
+        </div>
+        <div class="damage-badge">Impact: £92M + 19,000 appointments cancelled</div>
+      </div>
+      <div class="case-body">
+        <div class="grid-2">
+          <div>
+            <p style="font-size:.86rem;color:var(--lit);margin-bottom:.8rem;"><strong>What happened:</strong> WannaCry ransomware spread via a phishing email and an unpatched Windows vulnerability (EternalBlue). NHS hospitals had systems running Windows XP — no longer receiving security updates. Once in, the ransomware spread laterally, encrypting CT scanners, MRI machines, and patient records.</p>
+            <p style="font-size:.86rem;color:var(--lit);">Surgeries were cancelled. Ambulances were diverted. Patients in critical condition were turned away. All for the equivalent of ~$300 in Bitcoin ransom per machine.</p>
+          </div>
+          <div>
+            <div class="lesson-box">
+              <p><strong>Lessons for Training:</strong></p>
+              <ul style="font-size:.83rem;margin-top:.4rem;padding-left:1rem;">
+                <li>Phishing is the initial entry point — but unpatched systems amplify damage</li>
+                <li>Ransomware doesn't just encrypt data — it halts critical operations</li>
+                <li>Cost of prevention (patches, training) &lt;&lt; cost of breach</li>
+                <li>One infected machine on a network can spread to thousands instantly</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Case 3 -->
+    <div style="margin-bottom:1.5rem;">
+      <div class="case-header">
+        <div>
+          <div class="case-title">3. The Ubiquiti Employee Data Theft — 2021</div>
+          <div class="case-meta">Attack Type: Insider threat via spear phishing · Target: Networking hardware company Ubiquiti</div>
+        </div>
+        <div class="damage-badge">Impact: $4.1B market cap loss</div>
+      </div>
+      <div class="case-body">
+        <div class="grid-2">
+          <div>
+            <p style="font-size:.86rem;color:var(--lit);margin-bottom:.8rem;"><strong>What happened:</strong> An employee at Ubiquiti received a targeted spear-phishing email. After clicking, their credentials were used to access Ubiquiti's AWS cloud infrastructure. The attacker then <em>posed as an anonymous security researcher</em>, demanding $2M in ransom to not publish the stolen data.</p>
+            <p style="font-size:.86rem;color:var(--lit);">It later emerged the "attacker" was actually a current Ubiquiti employee trying to profit from access they already had — an insider threat disguised as external attack.</p>
+          </div>
+          <div>
+            <div class="lesson-box">
+              <p><strong>Lessons for Training:</strong></p>
+              <ul style="font-size:.83rem;margin-top:.4rem;padding-left:1rem;">
+                <li>Cloud access = high-value target. Protect with MFA always</li>
+                <li>Insider threats are real — not just external hackers</li>
+                <li>Principle of least privilege: employees should only access what they need</li>
+                <li>All suspicious access (internal or external) must be reported</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Case 4 -->
+    <div style="margin-bottom:1.5rem;">
+      <div class="case-header">
+        <div>
+          <div class="case-title">4. Indian Bank BEC Fraud — Multiple Cases (2022–2024)</div>
+          <div class="case-meta">Attack Type: Business Email Compromise (CEO Fraud) · Target: SMEs and finance teams across India</div>
+        </div>
+        <div class="damage-badge">Impact: ₹1,000+ crore stolen annually</div>
+      </div>
+      <div class="case-body">
+        <div class="grid-2">
+          <div>
+            <p style="font-size:.86rem;color:var(--lit);margin-bottom:.8rem;"><strong>What happened:</strong> Attackers compromised or spoofed email accounts of company CEOs/CFOs and sent urgent wire transfer instructions to finance teams. In multiple documented cases, employees transferred funds to overseas accounts before realising the email was fraudulent. One Pune-based IT company lost ₹7.2 crore in a single transaction.</p>
+            <p style="font-size:.86rem;color:var(--lit);">The RBI issued multiple advisories about BEC fraud — yet cases continue to rise because the emails are incredibly convincing and exploit trust in authority.</p>
+          </div>
+          <div>
+            <div class="lesson-box">
+              <p><strong>Lessons for Training:</strong></p>
+              <ul style="font-size:.83rem;margin-top:.4rem;padding-left:1rem;">
+                <li><strong>Always call back</strong> on a known number to verify wire transfer requests</li>
+                <li>No legitimate CEO bypasses finance approval chains "urgently"</li>
+                <li>Check the actual "From" address, not just the display name</li>
+                <li>Implement dual-approval for transfers above a threshold (policy fix)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Case 5 -->
+    <div style="margin-bottom:1.5rem;">
+      <div class="case-header">
+        <div>
+          <div class="case-title">5. The 2023 MGM Resorts Hack — $100M in Losses</div>
+          <div class="case-meta">Attack Type: Vishing (Voice Phishing) + Social Engineering · Target: MGM Resorts International</div>
+        </div>
+        <div class="damage-badge">Impact: $100M revenue loss + massive reputational damage</div>
+      </div>
+      <div class="case-body">
+        <div class="grid-2">
+          <div>
+            <p style="font-size:.86rem;color:var(--lit);margin-bottom:.8rem;"><strong>What happened:</strong> The ALPHV/Scattered Spider hacking group spent 10 minutes on a phone call with MGM's IT helpdesk. They found an MGM employee's name on LinkedIn, called IT pretending to be that employee, and reset their credentials. This gave them access to Okta SSO — which cascaded into control of MGM's entire environment.</p>
+            <p style="font-size:.86rem;color:var(--lit);">Slot machines went dark. Hotel key cards stopped working. Casino floor systems froze. 10 minutes on the phone = 10 days of disruption and $100M loss.</p>
+          </div>
+          <div>
+            <div class="lesson-box">
+              <p><strong>Lessons for Training:</strong></p>
+              <ul style="font-size:.83rem;margin-top:.4rem;padding-left:1rem;">
+                <li>Helpdesk staff need strict identity verification protocols before any reset</li>
+                <li>SSO is powerful — but one compromised identity = everything compromised</li>
+                <li>LinkedIn profiles are reconnaissance goldmines for attackers</li>
+                <li>The weakest link is always human, not technical</li>
+                <li>Training the helpdesk is as important as training users</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ===== FAQ TAB ===== -->
+<div id="tab-faq" class="tab-content">
+
+  <div class="section">
+    <div class="section-title">Common Participant Questions & How to Answer Them</div>
+
+    <details>
+      <summary>"I use Gmail / Outlook — aren't they already filtering all phishing emails?"</summary>
+      <div class="details-body">
+        <p>Good filters catch a lot — but not everything. Google and Microsoft report that even their best filters miss 3–7% of phishing emails. With billions of emails per day, that's hundreds of millions that reach inboxes. Additionally, attackers constantly evolve their techniques to evade filters. A filter is your second line of defence. <strong>Your judgement is the first.</strong></p>
+      </div>
+    </details>
+
+    <details>
+      <summary>"I've seen these emails for years — I'd never fall for it."</summary>
+      <div class="details-body">
+        <p>This is the most dangerous belief in cybersecurity. The MGM Resorts, Twitter, Podesta, and Colonial Pipeline attacks all targeted experienced professionals. Attackers specifically target people who are busy, distracted, or under pressure. The question isn't "Am I smart enough?" — it's "Am I busy enough to make a mistake?" The answer is always yes.</p>
+        <p style="margin-top:.5rem;">Also: modern spear-phishing emails are personalised using your LinkedIn, social media, and company website. They reference your name, your manager's name, recent company events. They don't look like spam anymore.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>"What if I accidentally clicked a phishing link?"</summary>
+      <div class="details-body">
+        <ul>
+          <li>Do NOT enter any information on the page that opened</li>
+          <li>Close the browser tab immediately</li>
+          <li>Disconnect from Wi-Fi or ethernet temporarily</li>
+          <li>Report it to IT security <strong>immediately</strong> — even if nothing seems wrong. Fast reporting can prevent malware from spreading across the network</li>
+          <li>Change your password for any accounts you use on that device</li>
+          <li>IT will scan your device for malware</li>
+        </ul>
+        <p style="margin-top:.6rem;color:#fcd34d;"><strong>Key message: Reporting protects everyone. IT teams are not there to punish — they need to know ASAP.</strong></p>
+      </div>
+    </details>
+
+    <details>
+      <summary>"My password is already long with symbols — isn't that enough?"</summary>
+      <div class="details-body">
+        <p>Length and uniqueness matter more than complexity. A password like <code>Ahmed@Mumbai2024!</code> is 18 characters with symbols but it follows predictable human patterns (name, city, year, symbol at end). Attackers use <strong>rule-based cracking</strong> that knows these patterns.</p>
+        <p style="margin-top:.5rem;">The real question is: <strong>are you reusing it?</strong> If yes, one breach of any site where you use it = all your accounts compromised. Use a password manager (Bitwarden, 1Password) to generate and store unique passwords for every site.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>"Is a VPN enough to protect me from phishing?"</summary>
+      <div class="details-body">
+        <p>No. A VPN encrypts your connection and hides your IP address — it does nothing to stop you from entering your credentials on a phishing site. In fact, using a VPN can give a false sense of security. Phishing is about deceiving <em>you</em>, not attacking your connection. The same vigilance applies whether you're on a VPN, public Wi-Fi, or office network.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>"My company uses SSO — doesn't that mean I only need one password?"</summary>
+      <div class="details-body">
+        <p>SSO is convenient but creates a single point of failure. If your SSO credentials are phished, the attacker gets access to everything your SSO controls — email, files, HR systems, cloud resources. This is exactly what happened to MGM Resorts ($100M loss). SSO should always be protected by MFA. One SSO credential + no MFA = catastrophic exposure.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>"What's the difference between antivirus and what we're learning today?"</summary>
+      <div class="details-body">
+        <p>Antivirus detects and blocks known malicious <em>files and programs</em>. It cannot stop you from voluntarily entering your credentials on a fake website. It cannot stop you from wiring money to a fraudster. It cannot stop you from clicking a link to a brand-new phishing page that was registered yesterday (no antivirus has analysed it yet). Human awareness is the security layer that covers what no software can — intentional human actions.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>"How do attackers even find my email address to target me?"</summary>
+      <div class="details-body">
+        <ul>
+          <li><strong>Data breaches:</strong> Your email was in one of the many breaches (check HaveIBeenPwned)</li>
+          <li><strong>LinkedIn and company websites:</strong> Most professionals list emails publicly</li>
+          <li><strong>Email harvesting bots:</strong> Scan websites automatically for @domain patterns</li>
+          <li><strong>Purchased lists:</strong> Breached email databases are sold on dark web for a few dollars</li>
+          <li><strong>Social media:</strong> Many people use the same email for everything</li>
+        </ul>
+        <p style="margin-top:.5rem;">Assume attackers already have your work email. The question is whether they can trick you once they send something to it.</p>
+      </div>
+    </details>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title">Closing Statement (Use This to End the Session)</div>
+    <div class="card card-say">
+      <div class="card-title">💬 CLOSING — SAY THIS verbatim or adapt it</div>
+      <p style="font-size:.95rem;line-height:1.8;">"Every attack we looked at today — from the Twitter hack to Colonial Pipeline to the BEC frauds costing Indian companies crores — all started with one person making one mistake. Not because they were careless. Not because they were unintelligent. But because they were human, and they were targeted by someone whose full-time job is to deceive people.</p>
+      <p style="font-size:.95rem;line-height:1.8;margin-top:.6rem;">You are now better equipped than 90% of the working world. You know how to read a sender address. You know how to analyse a URL. You know why MFA matters. You know what to do when something feels wrong.</p>
+      <p style="font-size:.95rem;line-height:1.8;margin-top:.6rem;"><strong>Use that knowledge. Share it with your family. Report suspicious emails. Enable MFA today.</strong> The next attack will come. Whether it succeeds is now, in part, up to you."</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tabnav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+function toggleCheck(el) {
+  el.classList.toggle('done');
+}
+</script>
+</body>
+</html>

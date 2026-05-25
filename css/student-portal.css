@@ -1,0 +1,323 @@
+.sp-dashboard { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.sp-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 900px) {
+  .sp-two-col { grid-template-columns: 1fr; }
+}
+
+.sp-progress-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: .45rem;
+}
+.sp-progress-label {
+  min-width: 110px;
+  font-size: .85rem;
+  color: var(--text2);
+}
+.sp-progress-val {
+  min-width: 44px;
+  text-align: right;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sp-modules-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.sp-module-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3em .75em;
+  border-radius: 8px;
+  font-size: .83rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+}
+.sp-mod--cleared { background: var(--good-bg); color: var(--good); border-color: var(--good); }
+.sp-mod--failed  { background: var(--bad-bg);  color: var(--bad);  border-color: var(--bad);  }
+.sp-mod--na      { background: var(--surface2);color: var(--text3);border-color: var(--border); }
+.sp-mod-icon     { font-size: 1em; }
+.sp-mod-count    { font-size: .78rem; opacity: .8; }
+
+.sp-alerts-list  { display: flex; flex-direction: column; gap: .4rem; }
+.sp-alert        { font-size: .85rem; }
+
+/* Interview score input row inside pi-banner */
+.interview-score-row .form-input--sm {
+  padding: .28rem .5rem;
+  font-size: .85rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DASHBOARD UI UPGRADE — Premium Layout v2
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Dash Header Layout (legacy, kept for other uses) ────── */
+.dash-header { align-items: center; flex-wrap: wrap; gap: 1.25rem 2rem; }
+.dash-header__info { flex: 1; min-width: 0; }
+.dash-header__title-row {
+  display: flex; align-items: center; gap: .65rem;
+  flex-wrap: wrap; margin-bottom: .2rem;
+}
+.dash-header__title-row .view-title { margin-bottom: 0; }
+
+/* ── New SaaS-style Dashboard Page Header ────────────────── */
+.dash-page-header {
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+}
+.dash-page-header__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: .65rem;
+}
+.dash-page-header__title-block { flex: 1; min-width: 0; }
+.dash-page-header__title-row {
+  display: flex; align-items: center; gap: .6rem;
+  flex-wrap: wrap; margin-bottom: .25rem;
+}
+.dash-page-title {
+  font-size: 1.35rem; font-weight: 700;
+  color: var(--text); letter-spacing: -.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 36ch;
+}
+.dash-page-desc {
+  font-size: .875rem; color: var(--text2);
+  margin: 0; line-height: 1.5;
+}
+.dash-page-header__actions {
+  display: flex; align-items: center;
+  gap: .5rem; flex-shrink: 0; flex-wrap: wrap;
+}
+/* Start Meeting primary CTA in batch header */
+.dash-meeting-btn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-weight: 600;
+}
+/* Ghost pencil icon button beside Start Meeting */
+.dash-edit-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2rem; height: 2rem; padding: 0;
+  border-radius: var(--radius);
+  color: var(--text2);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.dash-edit-link:hover {
+  background: var(--hover);
+  border-color: var(--border);
+  color: var(--ink);
+}
+.dash-page-header__meta {
+  display: flex; flex-wrap: wrap; gap: .4rem;
+}
+
+/* Quick class CTA accent pulse on load */
+.dash-cta-quick {
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(2,119,250,.35);
+  animation: dash-cta-glow 2.2s ease-out 1;
+}
+@keyframes dash-cta-glow {
+  0%   { box-shadow: 0 0 0 0 rgba(2,119,250,.45); }
+  60%  { box-shadow: 0 0 0 7px rgba(2,119,250,0); }
+  100% { box-shadow: 0 0 0 0 rgba(2,119,250,0);   }
+}
+
+/* More button icon+label variant */
+.btn-icon-label { display: inline-flex; align-items: center; gap: .35rem; }
+
+/* ── Dash Page Header — mobile ───────────────────────────── */
+@media (max-width: 640px) {
+  .dash-page-header { margin-bottom: 1rem; padding-bottom: .75rem; }
+  .dash-page-header__top { flex-direction: column; gap: .75rem; }
+  .dash-page-header__actions { width: 100%; justify-content: flex-start; }
+  .dash-cta-quick { flex: 1; justify-content: center; }
+  .dash-page-title { font-size: 1.15rem; }
+  .more-label { display: none; } /* icon-only on mobile */
+}
+
+/* ── Meta Pills Row ──────────────────────────────────────── */
+.dash-meta-row { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
+.dash-meta-pill {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .22rem .6rem; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  font-size: .78rem; line-height: 1.4;
+}
+.dash-meta-key { color: var(--text3); font-weight: 500; }
+.dash-meta-val { color: var(--text); font-weight: 600; }
+
+/* ── More Actions Dropdown ───────────────────────────────── */
+.more-actions-wrap { position: relative; }
+.more-actions-menu {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  min-width: 190px; padding: .35rem;
+  z-index: 200; display: none; flex-direction: column;
+}
+.more-actions-menu.is-open { display: flex; }
+.more-actions-item {
+  display: flex; align-items: center; gap: .5rem;
+  width: 100%; padding: .48rem .75rem; border-radius: 6px;
+  background: none; border: none; cursor: pointer;
+  font-size: .875rem; font-family: var(--font);
+  color: var(--text2); text-align: left;
+  transition: background var(--trans), color var(--trans);
+}
+.more-actions-item svg { width: .95rem; height: .95rem; flex-shrink: 0; }
+.more-actions-item:hover { background: var(--surface2); color: var(--text); }
+.more-actions-item--danger { color: var(--bad); }
+.more-actions-item--danger:hover { background: var(--bad-bg); color: var(--bad); }
+.more-actions-divider { height: 1px; background: var(--border); margin: .3rem 0; }
+
+/* ── Stat Cards — Visual Upgrade ────────────────────────── */
+.stat-card { border-left-width: 4px; padding: 1.15rem 1.35rem; gap: 1rem; }
+.stat-card .stat-icon {
+  font-size: 1.4rem; width: 2.6rem; height: 2.6rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: var(--surface2); flex-shrink: 0;
+}
+.stat-card .stat-icon svg { width: 1.35rem; height: 1.35rem; }
+.stat-card .stat-value { font-size: 1.6rem; letter-spacing: -.02em; }
+.stat-card .stat-label {
+  font-size: .72rem; font-weight: 600; letter-spacing: .02em;
+  margin-top: .2rem;
+}
+.stat-card--good .stat-icon  { background: var(--good-bg); }
+.stat-card--warn .stat-icon  { background: var(--warn-bg); }
+.stat-card--bad .stat-icon   { background: var(--bad-bg); }
+
+/* ── Back to Top Button ─────────────────────────────────── */
+#back-to-top-btn {
+  position: fixed; bottom: 1.5rem; right: 1.5rem;
+  width: 2.25rem; height: 2.25rem; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; z-index: 200;
+  transition: opacity .2s, transform .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+#back-to-top-btn.btt-visible { opacity: 1; pointer-events: auto; }
+#back-to-top-btn:hover { transform: translateY(-2px); }
+#back-to-top-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Podium Cards — Visual Upgrade ──────────────────────── */
+.podium-card { padding: 1.1rem 1.25rem; }
+.podium-title {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text3);
+  margin-bottom: .9rem; padding-bottom: .65rem;
+  border-bottom: 1px solid var(--border);
+}
+.podium-list { display: flex; flex-direction: column; }
+.podium-item {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem .25rem; border-bottom: 1px solid var(--border);
+}
+.podium-item:last-child { border-bottom: none; }
+.podium-rank { font-size: .78rem; font-weight: 700; min-width: 2rem; text-align: center; color: var(--text3); }
+.podium-rank--gold   { color: #d97706; }
+.podium-rank--silver { color: #64748b; }
+.podium-rank--bronze { color: #0260D4; }
+.podium-item--low .podium-rank { color: var(--bad); }
+.podium-item .user-avatar { flex-shrink: 0; }
+.podium-name { flex: 1; font-size: .9rem; font-weight: 500; }
+.podium-pi {
+  font-size: .82rem; font-weight: 700;
+  padding: .18em .55em; border-radius: 6px;
+  background: var(--surface2); color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+.podium-item .pi--good { background: var(--good-bg); color: var(--good); }
+.podium-item .pi--warn { background: var(--warn-bg); color: var(--warn); }
+.podium-item .pi--bad  { background: var(--bad-bg);  color: var(--bad);  }
+.podium-item[data-action] { cursor: pointer; border-radius: 6px; padding-left: .4rem; padding-right: .4rem; transition: background .15s; }
+.podium-item[data-action]:hover  { background: var(--surface2); }
+.podium-item[data-action]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Student Table Card Header ───────────────────────────── */
+.table-card-header { align-items: center; margin-bottom: 0; }
+.card-header__left { display: flex; align-items: center; gap: .7rem; }
+.card-header__right { display: flex; align-items: center; gap: .75rem; }
+.table-count-badge {
+  font-size: .73rem; font-weight: 600;
+  padding: .2em .65em; border-radius: 20px;
+  background: var(--surface2); color: var(--text3);
+  border: 1px solid var(--border); white-space: nowrap;
+}
+
+/* ================================================================
+   Fix S-6 — Sync Status Badge
+   Shows live Supabase sync state in the header — Google Sheets style.
+   Idle: invisible. Syncing: spin icon + "Saving…". Synced: check + "Saved" → fades out.
+   ================================================================ */
+/* Sync badge — Google Sheets style, always visible, pure grey */
+.sync-badge {
+  display: inline-flex;  /* always in layout — never hidden */
+  align-items: center;
+  gap: .38em;
+  font-size: .74rem;
+  font-weight: 500;
+  color: var(--text3);
+  opacity: .45;          /* faded idle state */
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
+  line-height: 1;
+  vertical-align: middle;
+  transition: opacity .35s ease;
+}
+/* Active states — slightly more visible but still grey */
+.sync-badge--syncing,
+.sync-badge--synced,
+.sync-badge--failed {
+  opacity: .85;
+}
+.sync-badge--failed { color: var(--bad); }
+
+/* Pop-in animation when content changes */
+@keyframes sync-pop {
+  0%   { opacity: 0; transform: translateY(3px) scale(.92); }
+  60%  { transform: translateY(-1px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.sync-badge--pop {
+  animation: sync-pop .22s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+
+/* icon sizing */
+.sync-badge-icon {
+  width: .82rem;
+  height: .82rem;
+  flex-shrink: 0;
+  display: block;
+  vertical-align: middle;
+}
+/* spinning arrows */
+@keyframes sync-rotate { to { transform: rotate(-360deg); } }
+.sync-badge-icon--spin {
+  animation: sync-rotate 1s linear infinite;
+  transform-origin: center;
+}
+
