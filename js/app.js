@@ -1206,6 +1206,12 @@ const App = (() => {
     // Export Reports — Reports tab
     document.getElementById('mb-export-reports')?.addEventListener('click', () => openBatchExportModal(batchId));
 
+    // Sessions-per-day selector — Session Plan tab
+    document.getElementById('mb-sess-per-day')?.addEventListener('change', e => {
+      Storage.updateBatch(batchId, { sessionsPerDay: parseInt(e.target.value) || 1 });
+      openManageBatch(batchId, 'session-plan');
+    });
+
     // Upload Session Plan — Session Plan tab
     document.getElementById('mb-plan-file')?.addEventListener('change', e => {
       const file = e.target.files[0];

@@ -2651,18 +2651,58 @@ const UI = (() => {
 
   // ─── Manage Batch Screen (Phase 5) ────────────────────────────────────────
 
-  /** Renders the Session Plan tab content for a batch. */
+  /**
+   * Maps each session in `plan` to a calendar date.
+   * Starts from `startDate`, skips Sundays and holidays.
+   * `sessPerDay` sessions are assigned per working day (default 1).
+   */
+  function _mapSessionDates(plan, startDate, holidays, sessPerDay) {
+    if (!startDate || !plan.length) return plan.map(s => ({ ...s, mappedDate: '' }));
+
+    const spd  = Math.max(1, parseInt(sessPerDay) || 1);
+    const hSet = new Set((holidays || []).map(h => h.date));
+
+    function toISO(d) {
+      // Use local date to avoid UTC-offset shifting
+      const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${dd}`;
+    }
+    function isWorking(d) { return d.getDay() !== 0 && !hSet.has(toISO(d)); }
+
+    // Start on or after startDate, first working day
+    const dayD = new Date(startDate + 'T00:00:00');
+    while (!isWorking(dayD)) dayD.setDate(dayD.getDate() + 1);
+
+    let slotInDay = 0;
+
+    return plan.map(s => {
+      if (!s.topic || s.sessionNo < 1) return { ...s, mappedDate: '' };
+      const dateStr = toISO(dayD);
+      slotInDay++;
+      if (slotInDay >= spd) {
+        slotInDay = 0;
+        dayD.setDate(dayD.getDate() + 1);
+        while (!isWorking(dayD)) dayD.setDate(dayD.getDate() + 1);
+      }
+      return { ...s, mappedDate: dateStr };
+    });
+  }
+
+  /** Renders the Session Plan tab content for a batch (with date mapping). */
   function _renderCoursePlanHTML(batch) {
-    const plan = batch.coursePlan || [];
+    const plan       = batch.coursePlan   || [];
+    const startDate  = batch.startDate    || '';
+    const holidays   = batch.holidays     || [];
+    const sessPerDay = batch.sessionsPerDay || 1;
 
     const uploadZone = `
       <div class="mb-section-bar" style="margin-bottom:1rem;">
-        <div>
-          <span class="mb-count">${plan.length ? `${plan.length} sessions · ${plan.reduce((s,r)=>s+r.durationHrs,0)} total hours` : 'No session plan uploaded yet'}</span>
-        </div>
-        <label style="cursor:pointer;">
+        <span class="mb-count">${plan.length
+          ? `${plan.length} sessions &nbsp;·&nbsp; ${plan.reduce((s,r)=>s+r.durationHrs,0)} total hours`
+          : 'No session plan uploaded yet'}</span>
+        <label style="cursor:pointer;display:inline-block;">
           <input type="file" id="mb-plan-file" accept=".xlsx,.xls" style="display:none">
-          <span class="btn btn-outline btn-sm" onclick="document.getElementById('mb-plan-file').click();event.preventDefault();">📂 ${plan.length ? 'Replace Plan' : 'Upload Plan Excel'}</span>
+          <span class="btn btn-outline btn-sm">📂 ${plan.length ? 'Replace Plan' : 'Upload Plan Excel'}</span>
         </label>
       </div>
       <div id="mb-plan-status" style="display:none;margin-bottom:1rem;"></div>`;
@@ -2678,10 +2718,46 @@ const UI = (() => {
         </div>`;
     }
 
-    // Group by subject
+    // ── Map sessions → dates ───────────────────────────────────────────────
+    const mapped   = _mapSessionDates(plan, startDate, holidays, sessPerDay);
+    const today    = (()=>{ const d=new Date(); const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; })();
+    const firstDt  = mapped.find(r => r.mappedDate)?.mappedDate || '';
+    const lastDt   = [...mapped].reverse().find(r => r.mappedDate)?.mappedDate || '';
+    const totalHrs = plan.reduce((s, r) => s + r.durationHrs, 0);
+
+    // ── Date mapping banner ────────────────────────────────────────────────
+    const mappingBanner = startDate ? `
+      <div style="padding:14px 18px;background:linear-gradient(135deg,#0c1d3a,#0f2d4a);border:1px solid #1e4580;border-radius:12px;margin-bottom:1.25rem;">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
+          <div>
+            <div style="font-size:.75rem;color:#93c5fd;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">📅 Session Date Mapping</div>
+            <div style="font-size:.92rem;color:#e2e8f0;font-weight:500;">
+              Session <span style="color:#7dd3fc;font-weight:700;">#1</span>
+              &rarr; <strong>${fmtDate(firstDt)}</strong>
+              &nbsp;&nbsp;
+              Session <span style="color:#7dd3fc;font-weight:700;">#${mapped.filter(r=>r.mappedDate).length}</span>
+              &rarr; <strong>${fmtDate(lastDt)}</strong>
+            </div>
+            <div style="font-size:.75rem;color:#64748b;margin-top:.3rem;">Mon–Sat &nbsp;·&nbsp; Sundays &amp; holidays skipped &nbsp;·&nbsp; ${totalHrs} hrs total</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+            <label style="font-size:.8rem;color:#94a3b8;white-space:nowrap;">Sessions / day</label>
+            <select id="mb-sess-per-day" style="padding:5px 10px;border-radius:7px;border:1px solid #334155;background:#0f172a;color:#f1f5f9;font-size:.85rem;cursor:pointer;">
+              <option value="1"${sessPerDay===1?' selected':''}>1&nbsp; (2 hrs/day)</option>
+              <option value="2"${sessPerDay===2?' selected':''}>2&nbsp; (4 hrs/day)</option>
+              <option value="3"${sessPerDay===3?' selected':''}>3&nbsp; (6 hrs/day)</option>
+            </select>
+          </div>
+        </div>
+      </div>` : `
+      <div style="padding:10px 14px;background:#1c1917;border:1px solid #78350f;border-radius:8px;color:#fbbf24;font-size:.85rem;margin-bottom:1rem;">
+        ⚠️ Set a <strong>Start Date</strong> in <em>Batch Details</em> to enable date mapping.
+      </div>`;
+
+    // ── Group by subject ───────────────────────────────────────────────────
     const grouped = [];
     let cur = null;
-    plan.forEach(row => {
+    mapped.forEach(row => {
       if (!cur || cur.subject !== row.subject) {
         cur = { subject: row.subject, rows: [] };
         grouped.push(cur);
@@ -2690,25 +2766,45 @@ const UI = (() => {
     });
 
     const subjectCards = grouped.map(g => {
-      const subjHrs  = g.rows.reduce((s, r) => s + r.durationHrs, 0);
-      const rowsHTML = g.rows.map(r => `
-        <div style="display:flex;align-items:baseline;gap:.75rem;padding:6px 0;border-bottom:1px solid var(--border,#334155);">
-          <span style="flex-shrink:0;min-width:2.2rem;font-size:.75rem;color:var(--text3,#94a3b8);font-family:monospace;">#${r.sessionNo}</span>
-          <span style="flex:1;font-size:.85rem;color:var(--text2,#cbd5e1);">${escHtml(r.topic)}</span>
-          <span style="flex-shrink:0;font-size:.78rem;font-weight:600;color:var(--text3,#94a3b8);white-space:nowrap;">${r.durationHrs}h</span>
-        </div>`).join('');
+      const subjHrs = g.rows.reduce((s, r) => s + r.durationHrs, 0);
+      const gFirst  = g.rows.find(r => r.mappedDate)?.mappedDate || '';
+      const gLast   = [...g.rows].reverse().find(r => r.mappedDate)?.mappedDate || '';
+
+      const rowsHTML = g.rows.map(r => {
+        const isPast  = r.mappedDate && r.mappedDate < today;
+        const isToday = r.mappedDate === today;
+        const dateClr = isToday ? '#34d399' : isPast ? '#475569' : '#7dd3fc';
+        const topicClr = isPast ? '#475569' : 'var(--text2,#cbd5e1)';
+        const strike   = isPast ? 'text-decoration:line-through;' : '';
+
+        return `
+          <div style="display:flex;align-items:center;gap:.6rem;padding:6px 0;border-bottom:1px solid #1e293b;">
+            <span style="flex-shrink:0;min-width:1.8rem;font-size:.72rem;color:#475569;font-family:monospace;text-align:right;">#${r.sessionNo}</span>
+            <span style="flex-shrink:0;min-width:6rem;font-size:.72rem;font-family:monospace;color:${dateClr};">${r.mappedDate ? fmtDate(r.mappedDate) : ''}</span>
+            ${isToday ? `<span style="flex-shrink:0;font-size:.62rem;font-weight:700;background:#064e3b;color:#34d399;padding:1px 5px;border-radius:4px;letter-spacing:.04em;">TODAY</span>` : ''}
+            <span style="flex:1;font-size:.84rem;color:${topicClr};${strike}">${escHtml(r.topic)}</span>
+            <span style="flex-shrink:0;font-size:.73rem;color:#475569;white-space:nowrap;">${r.durationHrs}h</span>
+          </div>`;
+      }).join('');
+
+      const dateRangeLabel = gFirst
+        ? `<div style="font-size:.72rem;color:#7dd3fc;white-space:nowrap;">${fmtDate(gFirst)} – ${fmtDate(gLast)}</div>`
+        : '';
 
       return `
         <details class="plan-subject-block" style="border:1px solid var(--border,#334155);border-radius:10px;margin-bottom:.75rem;overflow:hidden;">
           <summary style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;background:var(--surface2,#1e293b);user-select:none;list-style:none;">
             <span style="font-size:.9rem;font-weight:600;color:var(--text1,#f1f5f9);">${escHtml(g.subject)}</span>
-            <span style="font-size:.8rem;color:var(--text3,#94a3b8);white-space:nowrap;margin-left:1rem;">${g.rows.length} sessions &nbsp;·&nbsp; ${subjHrs} hrs</span>
+            <div style="text-align:right;margin-left:1rem;flex-shrink:0;">
+              <div style="font-size:.78rem;color:var(--text3,#94a3b8);">${g.rows.length} sessions &nbsp;·&nbsp; ${subjHrs} hrs</div>
+              ${dateRangeLabel}
+            </div>
           </summary>
           <div style="padding:0 16px 8px;background:var(--surface,#0f172a);">${rowsHTML}</div>
         </details>`;
     }).join('');
 
-    return uploadZone + `<div id="course-plan-body">${subjectCards}</div>`;
+    return uploadZone + mappingBanner + `<div id="course-plan-body">${subjectCards}</div>`;
   }
 
   function renderManageBatch(batch, activeTab = 'details') {
