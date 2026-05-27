@@ -1206,6 +1206,49 @@ const App = (() => {
     // Export Reports — Reports tab
     document.getElementById('mb-export-reports')?.addEventListener('click', () => openBatchExportModal(batchId));
 
+    // Upload Session Plan — Session Plan tab
+    document.getElementById('mb-plan-file')?.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file || typeof XLSX === 'undefined') return;
+      const statusEl = document.getElementById('mb-plan-status');
+      if (statusEl) { statusEl.style.display = 'block'; statusEl.style.cssText = 'display:block;padding:10px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:.85rem;'; statusEl.textContent = '⏳ Parsing…'; }
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const wb    = XLSX.read(ev.target.result, { type: 'array' });
+          const sName = wb.SheetNames.includes('Logsheet') ? 'Logsheet' : wb.SheetNames[0];
+          const ws    = wb.Sheets[sName];
+          const rows  = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1 });
+          const plan  = [];
+          let curSubj = '';
+          for (let i = 0; i < rows.length; i++) {
+            const r       = rows[i];
+            const subj    = (r[0] || '').toString().trim();
+            const sessNo  = r[1];
+            const rawT    = (r[2] || '').toString().replace(/\r\n|\r|\n/g,' ').trim();
+            const dur     = parseFloat(r[3]) || 0;
+            if (subj && subj.toLowerCase() !== 'subject') curSubj = subj;
+            if (!rawT || rawT.toLowerCase() === 'total') continue;
+            if (!curSubj) continue;
+            const sn = parseInt(sessNo);
+            if (isNaN(sn) || sn < 1) continue;
+            plan.push({ subject: curSubj, sessionNo: sn, topic: rawT, durationHrs: dur });
+          }
+          if (plan.length === 0) {
+            if (statusEl) { statusEl.style.cssText = 'display:block;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;'; statusEl.innerHTML = '⚠️ No sessions found. Check columns: <b>Subject</b> · <b>Sessions</b> · <b>Topic</b> · <b>Duration (Hrs.)</b>'; }
+            return;
+          }
+          Storage.updateBatch(batchId, { coursePlan: plan });
+          openManageBatch(batchId, 'session-plan');
+          const totalHrs = plan.reduce((s, r) => s + r.durationHrs, 0);
+          UI.showToast(`Session plan uploaded — ${plan.length} sessions, ${totalHrs} hrs`, 'success');
+        } catch {
+          if (statusEl) { statusEl.style.cssText = 'display:block;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;'; statusEl.textContent = '❌ Could not read the file.'; }
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
     // Archive Batch (Batch Actions section — Details tab)
     document.getElementById('mb-archive-batch')?.addEventListener('click', () => {
       const batch = Storage.getBatch(batchId);
@@ -3719,15 +3762,23 @@ const App = (() => {
       pendingStudents.forEach(s => Storage.createStudent(batch.id, s));
       window._pendingBatchStudents = null;
 
+      // Attach course plan if pre-loaded from course plan Excel
+      const pendingPlan = window._pendingCoursePlan || null;
+      if (pendingPlan && pendingPlan.length > 0) {
+        Storage.updateBatch(batch.id, { coursePlan: pendingPlan });
+      }
+      window._pendingCoursePlan = null;
+
       modal.remove();
       UI.renderSidebar(Storage.getMyBatches(), batch.id);
       selectBatch(batch.id);
-      const stuSuffix = pendingStudents.length > 0
-        ? ` with ${pendingStudents.length} student${pendingStudents.length !== 1 ? 's' : ''}!`
-        : '!';
+      const parts = [];
+      if (pendingStudents.length > 0) parts.push(`${pendingStudents.length} student${pendingStudents.length !== 1 ? 's' : ''}`);
+      if (pendingPlan && pendingPlan.length > 0) parts.push(`${pendingPlan.length} sessions plan`);
+      const stuSuffix = parts.length > 0 ? ` with ${parts.join(' & ')}!` : '!';
       UI.showToast(`Batch "${name}" created${stuSuffix}`, 'success');
     });
-    bindModalClose(modal, () => { window._pendingBatchStudents = null; });
+    bindModalClose(modal, () => { window._pendingBatchStudents = null; window._pendingCoursePlan = null; });
   }
 
   function openEditBatchModal(batchId) {

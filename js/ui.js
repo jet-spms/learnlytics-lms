@@ -1563,6 +1563,18 @@ const UI = (() => {
             </label>
             <div id="batch-xl-preview" style="display:none;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;"></div>
           </div>
+          <div class="form-group" id="batch-plan-group">
+            <label>Course Plan Excel <span class="form-hint">(optional — attaches session schedule to batch)</span></label>
+            <label id="batch-plan-drop" style="display:flex;align-items:center;gap:.75rem;padding:14px 16px;border:2px dashed var(--border,#334155);border-radius:10px;cursor:pointer;transition:border-color .2s,background .2s;background:var(--surface2,#1e293b);">
+              <input type="file" id="batch-plan-file" accept=".xlsx,.xls" style="display:none">
+              <span style="font-size:1.4rem;flex-shrink:0;">📋</span>
+              <div style="min-width:0;">
+                <div id="batch-plan-label" style="color:var(--text3,#94a3b8);font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Click to choose course plan / logsheet Excel (.xlsx)</div>
+                <div style="font-size:.75rem;color:var(--text3,#94a3b8);margin-top:2px;">Columns: <b>Subject</b> · <b>Sessions</b> · <b>Topic</b> · <b>Duration (Hrs.)</b></div>
+              </div>
+            </label>
+            <div id="batch-plan-preview" style="display:none;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;"></div>
+          </div>
           <div style="display:flex;align-items:center;gap:10px;margin:0 0 1rem;color:var(--text3,#94a3b8);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;">
             <div style="flex:1;height:1px;background:var(--border,#334155)"></div>
             <span>or fill in manually</span>
@@ -1689,6 +1701,81 @@ const UI = (() => {
         xlDrop.style.borderColor = '';
         xlDrop.style.background  = '';
         _parseBatchXL(e.dataTransfer.files[0]);
+      });
+
+      // ── Course Plan Excel parsing ─────────────────────────────────────
+      const planFile = document.getElementById('batch-plan-file');
+      const planDrop = document.getElementById('batch-plan-drop');
+      window._pendingCoursePlan = null;
+
+      function _parseCoursePlanXL(file) {
+        if (!file || typeof XLSX === 'undefined') return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try {
+            const wb     = XLSX.read(ev.target.result, { type: 'array' });
+            const sName  = wb.SheetNames.includes('Logsheet') ? 'Logsheet' : wb.SheetNames[0];
+            const ws     = wb.Sheets[sName];
+            const rows   = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1 });
+            const plan   = [];
+            let curSubj  = '';
+
+            for (let i = 0; i < rows.length; i++) {
+              const r       = rows[i];
+              const subj    = (r[0] || '').toString().trim();
+              const sessNo  = r[1];
+              const rawTopic= (r[2] || '').toString().replace(/\r\n|\r|\n/g, ' ').trim();
+              const durRaw  = r[3];
+              const dur     = parseFloat(durRaw) || 0;
+
+              if (subj && subj.toLowerCase() !== 'subject') curSubj = subj;
+              if (!rawTopic || rawTopic.toLowerCase() === 'total') continue;
+              if (!curSubj || (!sessNo && !rawTopic)) continue;
+              const sn = parseInt(sessNo);
+              if (isNaN(sn) || sn < 1) continue;
+
+              plan.push({
+                subject:     curSubj,
+                sessionNo:   sn,
+                topic:       rawTopic,
+                durationHrs: dur
+              });
+            }
+
+            window._pendingCoursePlan = plan.length > 0 ? plan : null;
+
+            const prev    = document.getElementById('batch-plan-preview');
+            const labelEl = document.getElementById('batch-plan-label');
+            if (labelEl) labelEl.textContent = file.name;
+
+            if (plan.length > 0) {
+              const subjects  = [...new Set(plan.map(r => r.subject))];
+              const totalHrs  = plan.reduce((s, r) => s + r.durationHrs, 0);
+              prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;';
+              prev.innerHTML =
+                `✅ <strong>${file.name}</strong> — ` +
+                `<strong>${plan.length} sessions</strong>, <strong>${totalHrs} hrs</strong> across <strong>${subjects.length} subjects</strong>`;
+            } else {
+              prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;';
+              prev.innerHTML = '⚠️ No sessions found. Expected columns: <b>Subject</b> · <b>Sessions</b> · <b>Topic</b> · <b>Duration (Hrs.)</b>';
+            }
+          } catch {
+            const prev = document.getElementById('batch-plan-preview');
+            prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;';
+            prev.innerHTML = '❌ Could not read the course plan file.';
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      planFile?.addEventListener('change', e => _parseCoursePlanXL(e.target.files[0]));
+      planDrop?.addEventListener('dragover',  e => { e.preventDefault(); planDrop.style.borderColor = 'var(--accent,#0277fa)'; planDrop.style.background = 'var(--surface,#0f172a)'; });
+      planDrop?.addEventListener('dragleave', () => { planDrop.style.borderColor = ''; planDrop.style.background = ''; });
+      planDrop?.addEventListener('drop', e => {
+        e.preventDefault();
+        planDrop.style.borderColor = '';
+        planDrop.style.background  = '';
+        _parseCoursePlanXL(e.dataTransfer.files[0]);
       });
     }
     // ─────────────────────────────────────────────────────────────────────
@@ -2564,6 +2651,66 @@ const UI = (() => {
 
   // ─── Manage Batch Screen (Phase 5) ────────────────────────────────────────
 
+  /** Renders the Session Plan tab content for a batch. */
+  function _renderCoursePlanHTML(batch) {
+    const plan = batch.coursePlan || [];
+
+    const uploadZone = `
+      <div class="mb-section-bar" style="margin-bottom:1rem;">
+        <div>
+          <span class="mb-count">${plan.length ? `${plan.length} sessions · ${plan.reduce((s,r)=>s+r.durationHrs,0)} total hours` : 'No session plan uploaded yet'}</span>
+        </div>
+        <label style="cursor:pointer;">
+          <input type="file" id="mb-plan-file" accept=".xlsx,.xls" style="display:none">
+          <span class="btn btn-outline btn-sm" onclick="document.getElementById('mb-plan-file').click();event.preventDefault();">📂 ${plan.length ? 'Replace Plan' : 'Upload Plan Excel'}</span>
+        </label>
+      </div>
+      <div id="mb-plan-status" style="display:none;margin-bottom:1rem;"></div>`;
+
+    if (!plan.length) {
+      return uploadZone + `
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-title">No Session Plan</div>
+          <div class="empty-state-msg">Upload a course logsheet Excel to attach a session plan.<br>
+            Expected columns: <b>Subject</b> · <b>Sessions</b> · <b>Topic</b> · <b>Duration (Hrs.)</b>
+          </div>
+        </div>`;
+    }
+
+    // Group by subject
+    const grouped = [];
+    let cur = null;
+    plan.forEach(row => {
+      if (!cur || cur.subject !== row.subject) {
+        cur = { subject: row.subject, rows: [] };
+        grouped.push(cur);
+      }
+      cur.rows.push(row);
+    });
+
+    const subjectCards = grouped.map(g => {
+      const subjHrs  = g.rows.reduce((s, r) => s + r.durationHrs, 0);
+      const rowsHTML = g.rows.map(r => `
+        <div style="display:flex;align-items:baseline;gap:.75rem;padding:6px 0;border-bottom:1px solid var(--border,#334155);">
+          <span style="flex-shrink:0;min-width:2.2rem;font-size:.75rem;color:var(--text3,#94a3b8);font-family:monospace;">#${r.sessionNo}</span>
+          <span style="flex:1;font-size:.85rem;color:var(--text2,#cbd5e1);">${escHtml(r.topic)}</span>
+          <span style="flex-shrink:0;font-size:.78rem;font-weight:600;color:var(--text3,#94a3b8);white-space:nowrap;">${r.durationHrs}h</span>
+        </div>`).join('');
+
+      return `
+        <details class="plan-subject-block" style="border:1px solid var(--border,#334155);border-radius:10px;margin-bottom:.75rem;overflow:hidden;">
+          <summary style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;background:var(--surface2,#1e293b);user-select:none;list-style:none;">
+            <span style="font-size:.9rem;font-weight:600;color:var(--text1,#f1f5f9);">${escHtml(g.subject)}</span>
+            <span style="font-size:.8rem;color:var(--text3,#94a3b8);white-space:nowrap;margin-left:1rem;">${g.rows.length} sessions &nbsp;·&nbsp; ${subjHrs} hrs</span>
+          </summary>
+          <div style="padding:0 16px 8px;background:var(--surface,#0f172a);">${rowsHTML}</div>
+        </details>`;
+    }).join('');
+
+    return uploadZone + `<div id="course-plan-body">${subjectCards}</div>`;
+  }
+
   function renderManageBatch(batch, activeTab = 'details') {
     const main = document.getElementById('main-content');
     if (!main) return;
@@ -2718,18 +2865,22 @@ const UI = (() => {
         <button class="btn btn-primary" id="mb-export-reports">${_ICONS.download} Export Reports</button>
       </div>`;
 
+    // ── Session Plan tab ──
+    const sessionPlanHTML = _renderCoursePlanHTML(batch);
+
     const tabs = [
-      { id: 'details',  label: 'Batch Details' },
-      { id: 'students', label: 'Students'       },
-      { id: 'holidays', label: 'Holidays'       },
-      { id: 'reports',  label: 'Reports'        },
+      { id: 'details',      label: 'Batch Details' },
+      { id: 'students',     label: 'Students'       },
+      { id: 'session-plan', label: '📋 Session Plan' },
+      { id: 'holidays',     label: 'Holidays'       },
+      { id: 'reports',      label: 'Reports'        },
     ];
 
     const tabsHTML = tabs.map(t =>
       `<button class="manage-tab${t.id===activeTab?' manage-tab--active':''}" data-manage-tab="${t.id}">${t.label}</button>`
     ).join('');
 
-    const bodyMap = { details: detailsHTML, students: studentsHTML, holidays: holidaysHTML, reports: reportsHTML };
+    const bodyMap = { details: detailsHTML, students: studentsHTML, holidays: holidaysHTML, reports: reportsHTML, 'session-plan': sessionPlanHTML };
 
     main.innerHTML = `
       <div class="view-header">
