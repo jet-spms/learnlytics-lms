@@ -235,10 +235,10 @@ const Storage = (() => {
     };
   }
 
-  function _makeStudent(batchName, { name, email = '', phone = '' }) {
+  function _makeStudent(batchName, { name, email = '', phone = '', studentId: customStudentId = '' }) {
     return {
       id:                  's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      studentId:           generateStudentId(batchName),
+      studentId:           (customStudentId && customStudentId.trim()) ? customStudentId.trim() : generateStudentId(batchName),
       name, email, phone,
       createdAt:           new Date().toISOString(),
       sessions:            [],

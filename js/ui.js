@@ -1614,6 +1614,24 @@ const UI = (() => {
               value="${existing ? existing.name : ''}" placeholder="Student's full name">
           </div>
           <div class="form-group">
+            <label style="display:flex;align-items:center;justify-content:space-between;">
+              <span>Student ID${existing ? '' : ' <span style="font-size:.76rem;font-weight:400;color:var(--text3)">(leave blank to auto-generate)</span>'}</span>
+            </label>
+            <div style="display:flex;gap:.5rem;align-items:center;">
+              <input type="text" id="f-stu-id" class="form-input"
+                value="${existing ? (existing.studentId || '') : ''}"
+                placeholder="e.g. JKC12345  —  auto-generated if blank"
+                style="flex:1;font-family:monospace;letter-spacing:.04em;">
+              ${!existing ? `<button type="button" id="btn-regen-id" class="btn btn-outline btn-sm"
+                title="Generate a new ID" style="padding:.45rem .7rem;white-space:nowrap;flex-shrink:0;">↻ New ID</button>` : ''}
+            </div>
+            <p style="font-size:.76rem;color:var(--text3);margin-top:.3rem;">
+              ${existing
+                ? 'You can rename the display ID — internal data is not affected.'
+                : 'Type your own ID (e.g. <b>JK001</b>) or leave blank and one will be created for you.'}
+            </p>
+          </div>
+          <div class="form-group">
             <label>Email</label>
             <input type="email" id="f-stu-email" class="form-input"
               value="${existing ? existing.email : ''}" placeholder="email@example.com">
@@ -1631,6 +1649,15 @@ const UI = (() => {
       </div>`;
     document.body.appendChild(modal);
     document.getElementById('f-stu-name').focus();
+
+    // ── Regen button: generates a new random preview ID on click ────────────
+    const regenBtn = document.getElementById('btn-regen-id');
+    if (regenBtn) {
+      regenBtn.addEventListener('click', () => {
+        const prefix = (document.getElementById('f-stu-name').value.trim().replace(/\s+/g,'').substring(0,3) || 'STU').toUpperCase();
+        document.getElementById('f-stu-id').value = prefix + Math.floor(10000 + Math.random() * 89999);
+      });
+    }
     return modal;
   }
 

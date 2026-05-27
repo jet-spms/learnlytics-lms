@@ -3839,10 +3839,12 @@ const App = (() => {
     document.getElementById('modal-confirm').addEventListener('click', () => {
       const name = document.getElementById('f-stu-name').value.trim();
       if (!name) { UI.showToast('Name is required', 'error'); return; }
+      const customId = (document.getElementById('f-stu-id')?.value || '').trim();
       Storage.createStudent(batchId, {
         name,
-        email: document.getElementById('f-stu-email').value.trim(),
-        phone: document.getElementById('f-stu-phone').value.trim()
+        email:     document.getElementById('f-stu-email').value.trim(),
+        phone:     document.getElementById('f-stu-phone').value.trim(),
+        studentId: customId   // blank = auto-generate inside storage.js
       });
       modal.remove();
       UI.showToast(`Student "${name}" added!`, 'success');
@@ -3859,14 +3861,16 @@ const App = (() => {
     document.getElementById('modal-confirm').addEventListener('click', () => {
       const name = document.getElementById('f-stu-name').value.trim();
       if (!name) { UI.showToast('Name is required', 'error'); return; }
+      const newDisplayId = (document.getElementById('f-stu-id')?.value || '').trim();
       Storage.updateStudent(batchId, studentId, {
         name,
-        email: document.getElementById('f-stu-email').value.trim(),
-        phone: document.getElementById('f-stu-phone').value.trim()
+        email:     document.getElementById('f-stu-email').value.trim(),
+        phone:     document.getElementById('f-stu-phone').value.trim(),
+        studentId: newDisplayId || student.studentId  // keep existing if cleared
       });
       modal.remove();
       UI.showToast('Student updated!', 'success');
-      if (state.view === 'profile')       openStudentProfile(batchId, studentId);
+      if (state.view === 'profile')           openStudentProfile(batchId, studentId);
       else if (state.view === 'manage-batch') openManageBatch(batchId, 'students');
       else selectBatch(batchId);
     });
