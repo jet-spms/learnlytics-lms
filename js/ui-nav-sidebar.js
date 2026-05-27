@@ -64,8 +64,10 @@ const UINavSidebar = (() => {
     },
     { type: 'group', id: 'academics',       label: 'Academics',         icon: _ICONS.academics,
       children: [
-        { id: 'academics-tests', label: 'Weekly Tests' },
-        { id: 'academics-exams', label: 'Module Exams' },
+        { id: 'academics-tests',         label: 'Weekly Tests'   },
+        { id: 'academics-exams',         label: 'Module Exams'   },
+        { id: 'academics-question-bank', label: 'Question Bank'  },
+        { id: 'academics-tests-mgmt',    label: 'Tests'          },
       ]
     },
     { type: 'group', id: 'mock-interviews', label: 'Mock Interviews',   icon: _ICONS.mock,

@@ -10,7 +10,8 @@
  *   renderStudentSidebar, renderStudentDashboard,
  *   renderStudentAttendance, renderStudentTestScores,
  *   renderStudentMockHistory, renderStudentPlacement,
- *   renderStudentSettings, showCreateStudentLoginModal
+ *   renderStudentSettings, showCreateStudentLoginModal,
+ *   renderStudentMCQTests, renderStudentTestTaking, renderStudentTestResult
  */
 
 const UIStudentPortal = (() => {
@@ -177,6 +178,7 @@ const UIStudentPortal = (() => {
         ${navItem('dashboard',    _ICONS.dashboard,  'Dashboard')}
         ${navItem('attendance',   _ICONS.attendance, 'Attendance')}
         ${navItem('tests',        _ICONS.bookOpen,   'Test Scores')}
+        ${navItem('mcq-tests',    _ICONS.clipboard,  'MCQ Tests')}
         ${navItem('mock-history', _ICONS.mock,       'Mock History')}
         ${navItem('placement',    _ICONS.scoring,    'Placement')}
         ${compact ? '' : `<div class="nsb-section" style="margin-top:.4rem"><span class="nsb-title">Schedule</span></div>`}
@@ -728,6 +730,281 @@ const UIStudentPortal = (() => {
     });
   }
 
+  // ─── MCQ Tests: test list ─────────────────────────────────────────────────
+
+  function renderStudentMCQTests(tests, attempts) {
+    const container = document.getElementById('student-main-content');
+    if (!container) return;
+
+    // build a lookup: test_id → attempt
+    const attemptMap = {};
+    for (const a of attempts) attemptMap[a.test_id] = a;
+
+    const now = Date.now();
+
+    function testCard(t) {
+      const attempt  = attemptMap[t.id];
+      const nQ       = (t.question_ids || []).length;
+      const isClosed = t.status === 'closed';
+
+      let actionHTML = '';
+      let statusBadge = '';
+
+      if (!attempt) {
+        if (isClosed) {
+          statusBadge = '<span class="mcq-badge mcq-badge--closed">Closed</span>';
+          actionHTML  = '<button class="btn btn--sm btn--ghost" disabled>Closed</button>';
+        } else {
+          statusBadge = '<span class="mcq-badge mcq-badge--live">Live</span>';
+          actionHTML  = `<button class="btn btn--sm btn--primary" data-action="mcq-start" data-tid="${t.id}">Start Test</button>`;
+        }
+      } else if (attempt.status === 'submitted') {
+        statusBadge = attempt.passed
+          ? '<span class="mcq-badge mcq-badge--passed">Passed</span>'
+          : '<span class="mcq-badge mcq-badge--failed">Failed</span>';
+        actionHTML = `<button class="btn btn--sm btn--ghost" data-action="mcq-results" data-tid="${t.id}">View Results</button>`;
+      } else {
+        // in_progress
+        const expired = attempt.deadline && now > new Date(attempt.deadline).getTime();
+        if (expired) {
+          statusBadge = '<span class="mcq-badge mcq-badge--expired">Expired</span>';
+          actionHTML  = '<button class="btn btn--sm btn--ghost" disabled>Time up</button>';
+        } else {
+          statusBadge = '<span class="mcq-badge mcq-badge--live">In Progress</span>';
+          actionHTML  = `<button class="btn btn--sm btn--warn" data-action="mcq-resume" data-tid="${t.id}">Resume</button>`;
+        }
+      }
+
+      const scoreHTML = (attempt && attempt.status === 'submitted')
+        ? `<span class="mcq-card-score">${attempt.score}/${attempt.total} &nbsp;(${attempt.percentage?.toFixed(1)}%)</span>`
+        : `<span class="mcq-card-meta">${nQ} questions &bull; ${t.duration_mins} min &bull; Pass ≥${t.pass_percent}%</span>`;
+
+      return `
+        <div class="mcq-card">
+          <div class="mcq-card-left">
+            <div class="mcq-card-title">${escHtml(t.title)}</div>
+            ${scoreHTML}
+          </div>
+          <div class="mcq-card-right">
+            ${statusBadge}
+            ${actionHTML}
+          </div>
+        </div>`;
+    }
+
+    const liveTests   = tests.filter(t => t.status === 'live');
+    const closedTests = tests.filter(t => t.status === 'closed');
+
+    const liveHTML = liveTests.length
+      ? liveTests.map(testCard).join('')
+      : '<p class="mcq-empty">No live tests right now.</p>';
+
+    const closedHTML = closedTests.length
+      ? closedTests.map(testCard).join('')
+      : '';
+
+    container.innerHTML = `
+      <div class="sp-section-wrap">
+        <div class="sp-section-header">
+          <h2 class="sp-section-title">MCQ Tests</h2>
+        </div>
+        <div class="mcq-list">
+          ${liveHTML}
+          ${closedHTML ? `<div class="mcq-group-label">Past Tests</div>${closedHTML}` : ''}
+        </div>
+      </div>`;
+  }
+
+  // ─── MCQ Tests: test-taking screen ───────────────────────────────────────
+
+  function renderStudentTestTaking(test, questions, currentQIdx, answers, secondsLeft) {
+    const container = document.getElementById('student-main-content');
+    if (!container) return;
+
+    const q        = questions[currentQIdx];
+    const total    = questions.length;
+    const answered = Object.keys(answers).length;
+
+    // Timer display
+    const mins    = Math.floor(secondsLeft / 60);
+    const secs    = secondsLeft % 60;
+    const timeStr = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    const urgency = secondsLeft < 120 ? ' mcq-timer--urgent' : secondsLeft < 300 ? ' mcq-timer--warn' : '';
+
+    // Options
+    const opts   = ['A','B','C','D'];
+    const optKey = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
+    const sel    = answers[q.id];
+
+    const optHTML = opts.filter(o => optKey[o]).map(o => `
+      <button class="mcq-option${sel === o ? ' mcq-option--selected' : ''}"
+        data-action="mcq-answer" data-qid="${q.id}" data-opt="${o}">
+        <span class="mcq-opt-label">${o}</span>
+        <span class="mcq-opt-text">${escHtml(optKey[o])}</span>
+      </button>`).join('');
+
+    // Question palette
+    const paletteHTML = questions.map((qq, i) => {
+      const isAns  = answers[qq.id] !== undefined;
+      const isCur  = i === currentQIdx;
+      return `<button class="mcq-pal-btn${isCur ? ' mcq-pal-btn--current' : isAns ? ' mcq-pal-btn--answered' : ''}"
+        data-action="mcq-goto" data-qi="${i}">${i + 1}</button>`;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="mcq-taking-wrap">
+        <div class="mcq-taking-header">
+          <div class="mcq-taking-title">${escHtml(test.title)}</div>
+          <div class="mcq-timer${urgency}">${_ICONS.clock || '⏱'} ${timeStr}</div>
+        </div>
+
+        <div class="mcq-taking-body">
+          <div class="mcq-question-area">
+            <div class="mcq-q-meta">Question ${currentQIdx + 1} of ${total}</div>
+            <div class="mcq-q-text">${escHtml(q.question)}</div>
+            <div class="mcq-options">${optHTML}</div>
+
+            <div class="mcq-nav-row">
+              <button class="btn btn--sm btn--ghost" data-action="mcq-prev"
+                ${currentQIdx === 0 ? 'disabled' : ''}>&#8592; Prev</button>
+              <span class="mcq-answered-count">${answered}/${total} answered</span>
+              ${currentQIdx < total - 1
+                ? `<button class="btn btn--sm btn--ghost" data-action="mcq-next">Next &#8594;</button>`
+                : `<button class="btn btn--sm btn--primary" data-action="mcq-submit">Submit Test</button>`
+              }
+            </div>
+          </div>
+
+          <div class="mcq-palette-area">
+            <div class="mcq-palette-title">Questions</div>
+            <div class="mcq-palette">${paletteHTML}</div>
+            <div class="mcq-palette-legend">
+              <span class="mcq-leg mcq-leg--answered">Answered</span>
+              <span class="mcq-leg mcq-leg--current">Current</span>
+              <span class="mcq-leg mcq-leg--unanswered">Not answered</span>
+            </div>
+            <button class="btn btn--primary btn--full-w" data-action="mcq-submit" style="margin-top:1rem">
+              Submit Test
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ─── MCQ Tests: results screen ────────────────────────────────────────────
+
+  function renderStudentTestResult(attempt, testTitle) {
+    const container = document.getElementById('student-main-content');
+    if (!container) return;
+
+    const pct      = (attempt.percentage || 0).toFixed(1);
+    const passed   = attempt.passed;
+    const barColor = passed ? 'good' : 'bad';
+
+    container.innerHTML = `
+      <div class="sp-section-wrap">
+        <div class="mcq-result-wrap">
+          <div class="mcq-result-header ${passed ? 'mcq-result-header--pass' : 'mcq-result-header--fail'}">
+            <div class="mcq-result-icon">${passed ? '✓' : '✗'}</div>
+            <div class="mcq-result-verdict">${passed ? 'Passed!' : 'Failed'}</div>
+            <div class="mcq-result-test-title">${escHtml(testTitle)}</div>
+          </div>
+
+          <div class="mcq-result-body">
+            <div class="mcq-result-stat">
+              <span class="mcq-result-num">${attempt.score}</span>
+              <span class="mcq-result-label">Correct</span>
+            </div>
+            <div class="mcq-result-stat">
+              <span class="mcq-result-num">${attempt.total - attempt.score}</span>
+              <span class="mcq-result-label">Wrong</span>
+            </div>
+            <div class="mcq-result-stat">
+              <span class="mcq-result-num">${attempt.total}</span>
+              <span class="mcq-result-label">Total</span>
+            </div>
+          </div>
+
+          <div class="mcq-result-pct-row">
+            <span>${pct}%</span>
+            <div class="score-bar" style="flex:1">
+              <div class="score-fill score-fill--${barColor}" style="width:${Math.min(100,pct)}%"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap">
+            <button class="btn btn--ghost" data-action="mcq-back-list" style="flex:1">
+              &#8592; Back to Tests
+            </button>
+            <button class="btn btn--outline" data-action="mcq-review" data-aid="${attempt.id}" style="flex:1">
+              Review Answers
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ─── MCQ Tests: answer review screen ─────────────────────────────────────
+
+  function renderStudentAnswerReview(reviewData, testTitle) {
+    const container = document.getElementById('student-main-content');
+    if (!container) return;
+
+    const { questions = [], score, total, percentage, passed } = reviewData || {};
+    const pct = (percentage || 0).toFixed(1);
+
+    const qItems = questions.map((q, i) => {
+      const opts    = ['A', 'B', 'C', 'D'];
+      const optHtml = opts.map(opt => {
+        const text = q.options?.[opt];
+        if (!text) return '';
+        const isStudentAns = q.student_answer === opt;
+        const isCorrect    = q.correct_answer === opt;
+        let cls = 'mcq-rev-opt';
+        if (isCorrect)              cls += ' mcq-rev-opt--correct';
+        if (isStudentAns && !isCorrect) cls += ' mcq-rev-opt--wrong';
+        const icon = isCorrect ? '✓' : (isStudentAns && !isCorrect ? '✗' : '');
+        return `
+          <div class="${cls}">
+            <span class="mcq-opt-label">${opt}</span>
+            <span class="mcq-opt-text">${escHtml(text)}</span>
+            ${icon ? `<span class="mcq-rev-icon">${icon}</span>` : ''}
+          </div>`;
+      }).join('');
+
+      const rowCls = q.is_correct ? 'mcq-rev-q--correct' : 'mcq-rev-q--wrong';
+      const qIcon  = q.is_correct ? '✓' : '✗';
+      return `
+        <div class="mcq-rev-q ${rowCls}">
+          <div class="mcq-rev-q-header">
+            <span class="mcq-rev-q-num">Q${i + 1}</span>
+            <span class="mcq-rev-q-icon">${qIcon}</span>
+          </div>
+          <div class="mcq-q-text" style="margin:.5rem 0 .75rem">${escHtml(q.question_text || '')}</div>
+          <div class="mcq-options">${optHtml}</div>
+          ${!q.student_answer ? `<p class="mcq-rev-skipped">Not answered</p>` : ''}
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="sp-section-wrap">
+        <div class="mcq-taking-wrap">
+          <div class="mcq-taking-header">
+            <div class="mcq-taking-title">${escHtml(testTitle)} — Review</div>
+            <div style="font-size:.85rem;color:var(--text3);margin-top:.2rem">
+              ${score}/${total} &middot; ${pct}% &middot; ${passed ? 'Passed' : 'Failed'}
+            </div>
+          </div>
+          <div class="mcq-rev-list">
+            ${qItems || '<p style="color:var(--text3);text-align:center;padding:2rem">No questions to review.</p>'}
+            <button class="btn btn--outline" style="width:100%;margin-top:1.5rem" data-action="mcq-back-list">
+              &#8592; Back to Tests
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
   return {
     renderStudentTopbar,
     renderStudentProfileDrawerContent,
@@ -739,6 +1016,10 @@ const UIStudentPortal = (() => {
     renderStudentPlacement,
     renderStudentSettings,
     showCreateStudentLoginModal,
+    renderStudentMCQTests,
+    renderStudentTestTaking,
+    renderStudentTestResult,
+    renderStudentAnswerReview,
   };
 
 })();

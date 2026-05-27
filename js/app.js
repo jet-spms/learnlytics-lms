@@ -41,12 +41,30 @@ const App = (() => {
   let _calYear     = new Date().getFullYear();
   let _calMonth    = new Date().getMonth();
 
+  // ─── Question Bank / Tests state ───────────────────────────────────────────
+  let _qbPendingRows = [];   // rows parsed from Excel, waiting for trainer confirmation
+  let _qbData        = [];   // full question bank cache, used when creating tests
+  let _testsData     = [];   // tests cache for current batch (used by handlers)
+
   // ─── Student portal state ──────────────────────────────────────────────────
   let _studentNavSection      = 'dashboard';          // active sidebar item
   let _studentCalViewMode     = 'month';              // calendar view
   let _studentCalDate         = _todayStr(); // focused date
   let _studentDrawerCalYear   = new Date().getFullYear();
   let _studentDrawerCalMonth  = new Date().getMonth();
+
+  // ─── MCQ test-session state ─────────────────────────────────────────────
+  let _mcqTests          = [];   // tests list fetched from Supabase
+  let _mcqAttempts       = [];   // this student's attempts
+  let _mcqActiveTest     = null; // test object currently being taken
+  let _mcqQuestions      = [];   // questions array (from spms_questions_public)
+  let _mcqCurrentQ       = 0;    // current question index
+  let _mcqAnswers        = {};   // { question_id: 'A'|'B'|'C'|'D' }
+  let _mcqAttemptId      = null; // UUID of the in_progress attempt row
+  let _mcqDeadline       = null; // ISO string deadline
+  let _mcqTimerInterval  = null; // setInterval handle
+  let _mcqSaveTimer      = null; // debounce handle for incremental saves
+  let _mcqResultAttempt  = null; // attempt object shown on results screen
 
   // Page title lookup for content topbar
   const _PAGE_TITLES = {
@@ -57,8 +75,10 @@ const App = (() => {
     'attendance-history':   'Attendance History',
     'presentation-today':   "Today's Schedule",
     'presentation-monthly': 'Monthly Schedule',
-    'academics-tests':      'Weekly Tests',
-    'academics-exams':      'Module Exams',
+    'academics-tests':         'Weekly Tests',
+    'academics-exams':         'Module Exams',
+    'academics-question-bank': 'Question Bank',
+    'academics-tests-mgmt':    'Tests',
     'mock-manual':          'Manual Mock Score',
     'mock-ai':              'AI Mock Score',
     'mock-history':         'Mock History',
@@ -346,6 +366,16 @@ const App = (() => {
       case 'academics-exams':
         if (state.activeBatchId) openAcademicsExams(state.activeBatchId);
         else { UI.renderSidebar(batches, null); _showNoBatchSelected('module exams'); }
+        break;
+
+      case 'academics-question-bank':
+        if (state.activeBatchId) openAcademicsQuestionBank(state.activeBatchId);
+        else { UI.renderSidebar(batches, null); _showNoBatchSelected('question bank'); }
+        break;
+
+      case 'academics-tests-mgmt':
+        if (state.activeBatchId) openAcademicsTestsMgmt(state.activeBatchId);
+        else { UI.renderSidebar(batches, null); _showNoBatchSelected('tests'); }
         break;
 
       case 'mock-manual':
@@ -864,6 +894,9 @@ const App = (() => {
       } else if (section === 'calendar') {
         UI.renderStudentTopbar(student, 'Calendar');
         if (batch) UI.renderCalendar(batch, _studentCalViewMode, _studentCalDate, true, 'student-main-content');
+      } else if (section === 'mcq-tests') {
+        UI.renderStudentTopbar(student, 'MCQ Tests');
+        _openMCQTests();
       } else if (section === 'settings') {
         UI.renderStudentTopbar(student, 'Settings');
         UI.renderStudentSettings();
@@ -920,7 +953,7 @@ const App = (() => {
         const navItem = e.target.closest('[data-student-nav]');
         if (navItem) {
           const section = navItem.dataset.studentNav;
-          const knownSections = ['dashboard', 'attendance', 'tests', 'mock-history', 'placement', 'calendar', 'settings'];
+          const knownSections = ['dashboard', 'attendance', 'tests', 'mcq-tests', 'mock-history', 'placement', 'calendar', 'settings'];
           if (knownSections.includes(section)) {
             if (window.innerWidth <= 640) _closeStudentDrawer();
             _navigateStudentTo(section);
@@ -969,7 +1002,7 @@ const App = (() => {
       if (e.target.closest('#student-dark-toggle')) {
         toggleStudentTheme();
         const { student } = _getStudentContext();
-        const titles = { dashboard:'Dashboard', attendance:'Attendance', tests:'Test Scores', 'mock-history':'Mock History', placement:'Placement', calendar:'Calendar', settings:'Settings' };
+        const titles = { dashboard:'Dashboard', attendance:'Attendance', tests:'Test Scores', 'mcq-tests':'MCQ Tests', 'mock-history':'Mock History', placement:'Placement', calendar:'Calendar', settings:'Settings' };
         UI.renderStudentTopbar(student, titles[_studentNavSection] || 'Dashboard');
         return;
       }
@@ -1005,10 +1038,10 @@ const App = (() => {
         return;
       }
 
-      // Calendar navigation (all handled same way as trainer's handleMainClick)
+      // Calendar navigation + MCQ actions — all via data-action
       const btn    = e.target.closest('[data-action]');
       const action = btn?.dataset?.action;
-      if (!action || !action.startsWith('cal-')) return;
+      if (!action) return;
 
       if (action === 'cal-prev') {
         _studentCalDate = _calShift(_studentCalDate, _studentCalViewMode, -1);
@@ -1038,6 +1071,18 @@ const App = (() => {
       }
       // All write actions (cal-new-event, cal-chip-menu, cal-edit-event, cal-delete-event)
       // are suppressed by .cal-shell--readonly CSS (pointer-events: none on .cal-ev) — no handler needed.
+
+      // ── MCQ test actions ────────────────────────────────────────────────
+      if (action === 'mcq-start')    { _handleMCQStart(btn.dataset.tid);   return; }
+      if (action === 'mcq-resume')   { _handleMCQResume(btn.dataset.tid);  return; }
+      if (action === 'mcq-results')  { _handleMCQViewResults(btn.dataset.tid); return; }
+      if (action === 'mcq-answer')   { _handleMCQAnswer(btn.dataset.qid, btn.dataset.opt); return; }
+      if (action === 'mcq-prev')     { _handleMCQNavigate(-1); return; }
+      if (action === 'mcq-next')     { _handleMCQNavigate(+1); return; }
+      if (action === 'mcq-goto')     { _handleMCQGoto(parseInt(btn.dataset.qi, 10)); return; }
+      if (action === 'mcq-submit')   { _handleMCQSubmit(); return; }
+      if (action === 'mcq-review')   { _handleMCQReview(btn.dataset.aid); return; }
+      if (action === 'mcq-back-list'){ _stopMCQTimer(); _navigateStudentTo('mcq-tests'); return; }
     });
 
     // ── Student profile drawer delegation ─────────────────────────────────
@@ -1140,9 +1185,307 @@ const App = (() => {
       _studentCalDate        = _todayStr();
       _studentDrawerCalYear  = new Date().getFullYear();
       _studentDrawerCalMonth = new Date().getMonth();
+      _stopMCQTimer();
+      _mcqTests = []; _mcqAttempts = []; _mcqActiveTest = null;
+      _mcqQuestions = []; _mcqCurrentQ = 0; _mcqAnswers = {};
+      _mcqAttemptId = null; _mcqDeadline = null;
       UI.setStudentAuthState(false);
       UI.renderAuthScreen(_handleLogin, _handleSignup);
     });
+  }
+
+  // ─── MCQ Student Test-Taking (Phase 3) ──────────────────────────────────────
+
+  async function _openMCQTests() {
+    const user = Storage.getCurrentUser();
+    if (!user) return;
+    const student = Storage.getStudent(user.linkedBatchId, user.linkedStudentId);
+    const batch   = Storage.getBatch(user.linkedBatchId);
+    if (!student || !batch) { UI.renderStudentMCQTests([], []); return; }
+    try {
+      const [tests, attempts] = await Promise.all([
+        SupabaseSync.fetchStudentTests(user.linkedBatchId, user.linkedStudentId),
+        SupabaseSync.fetchStudentAttempts(user.linkedStudentId, user.linkedBatchId),
+      ]);
+      _mcqTests   = tests;
+      _mcqAttempts = attempts;
+      UI.renderStudentMCQTests(tests, attempts);
+    } catch (err) {
+      console.error('MCQ fetch error', err);
+      UI.renderStudentMCQTests([], []);
+      UI.showToast('Could not load tests. Check connection.', 'error');
+    }
+  }
+
+  async function _handleMCQStart(testId) {
+    const user = Storage.getCurrentUser();
+    if (!user) return;
+    const test = _mcqTests.find(t => t.id === testId);
+    if (!test) return;
+
+    UI.showToast('Loading test…', 'info');
+    try {
+      const deadlineISO = new Date(Date.now() + test.duration_mins * 60 * 1000).toISOString();
+      const attemptId   = await SupabaseSync.startAttempt(
+        testId, user.linkedStudentId, user.linkedBatchId, deadlineISO
+      );
+      const questions   = await SupabaseSync.fetchTestQuestions(test.question_ids);
+      if (!questions.length) { UI.showToast('No questions found for this test.', 'error'); return; }
+
+      _mcqActiveTest    = test;
+      _mcqAttemptId     = attemptId;
+      _mcqDeadline      = deadlineISO;
+      _mcqQuestions     = questions;
+      _mcqCurrentQ      = 0;
+      _mcqAnswers       = {};
+
+      _startMCQTimer();
+      _renderTestTaking();
+    } catch (err) {
+      console.error('MCQ start error', err);
+      UI.showToast('Failed to start test. Try again.', 'error');
+    }
+  }
+
+  async function _handleMCQResume(testId) {
+    const user    = Storage.getCurrentUser();
+    if (!user) return;
+    const test    = _mcqTests.find(t => t.id === testId);
+    const attempt = _mcqAttempts.find(a => a.test_id === testId && a.status === 'in_progress');
+    if (!test || !attempt) return;
+
+    // If past deadline already, don't resume
+    if (new Date(attempt.deadline).getTime() < Date.now()) {
+      UI.showToast('Test time has expired.', 'error');
+      _openMCQTests();
+      return;
+    }
+
+    UI.showToast('Resuming test…', 'info');
+    try {
+      const questions = await SupabaseSync.fetchTestQuestions(test.question_ids);
+      if (!questions.length) { UI.showToast('No questions found.', 'error'); return; }
+
+      _mcqActiveTest = test;
+      _mcqAttemptId  = attempt.id;
+      _mcqDeadline   = attempt.deadline;
+      _mcqQuestions  = questions;
+      _mcqCurrentQ   = 0;
+      _mcqAnswers    = attempt.answers_snapshot || {};
+
+      _startMCQTimer();
+      _renderTestTaking();
+    } catch (err) {
+      console.error('MCQ resume error', err);
+      UI.showToast('Failed to resume. Try again.', 'error');
+    }
+  }
+
+  function _handleMCQViewResults(testId) {
+    const attempt = _mcqAttempts.find(a => a.test_id === testId && a.status === 'submitted');
+    const test    = _mcqTests.find(t => t.id === testId);
+    if (!attempt || !test) return;
+    _mcqResultAttempt = attempt;
+    UI.renderStudentTestResult(attempt, test.title);
+  }
+
+  function _handleMCQAnswer(questionId, option) {
+    _mcqAnswers[questionId] = option;
+    _renderTestTaking();
+    _scheduleMCQAnswerSave();
+  }
+
+  function _handleMCQNavigate(delta) {
+    const next = _mcqCurrentQ + delta;
+    if (next < 0 || next >= _mcqQuestions.length) return;
+    _mcqCurrentQ = next;
+    _renderTestTaking();
+  }
+
+  function _handleMCQGoto(idx) {
+    if (idx < 0 || idx >= _mcqQuestions.length) return;
+    _mcqCurrentQ = idx;
+    _renderTestTaking();
+  }
+
+  async function _handleMCQSubmit() {
+    if (!_mcqAttemptId || !_mcqActiveTest) return;
+    const unanswered = _mcqQuestions.length - Object.keys(_mcqAnswers).length;
+    const msg = unanswered > 0
+      ? `You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Submit anyway?`
+      : 'Submit the test? You cannot change answers after submission.';
+
+    UI.showConfirm(msg, async () => {
+      _stopMCQTimer();
+      clearTimeout(_mcqSaveTimer);
+
+      const user = Storage.getCurrentUser();
+      if (!user) return;
+
+      UI.showToast('Submitting…', 'info');
+      try {
+        const result = await SupabaseSync.submitTestRPC(
+          _mcqAttemptId, _mcqActiveTest.id, user.linkedStudentId, _mcqAnswers
+        );
+        // result = { score, total, percentage, passed, title }
+
+        // Append to student.weeklyTests[] in the same format as manual entry
+        const student = Storage.getStudent(user.linkedBatchId, user.linkedStudentId);
+        if (student) {
+          const weeklyTests = Array.isArray(student.weeklyTests) ? [...student.weeklyTests] : [];
+          weeklyTests.push({ week: result.title, date: new Date().toISOString(), marks: result.score, total: result.total });
+          Storage.updateStudent(user.linkedBatchId, user.linkedStudentId, { weeklyTests });
+        }
+
+        // Update local attempts cache
+        const attempt = _mcqAttempts.find(a => a.id === _mcqAttemptId);
+        if (attempt) {
+          attempt.status      = 'submitted';
+          attempt.score       = result.score;
+          attempt.total       = result.total;
+          attempt.percentage  = result.percentage;
+          attempt.passed      = result.passed;
+        }
+
+        UI.renderStudentTestResult(
+          attempt || { score: result.score, total: result.total, percentage: result.percentage, passed: result.passed },
+          result.title
+        );
+        UI.showToast(result.passed ? 'Test submitted — Passed!' : 'Test submitted — Failed', result.passed ? 'success' : 'error');
+      } catch (err) {
+        console.error('MCQ submit error', err);
+        UI.showToast('Submission failed. Try again.', 'error');
+        // Timer already stopped; let student retry
+        _startMCQTimer();
+        _renderTestTaking();
+      }
+    });
+  }
+
+  function _renderTestTaking() {
+    const secondsLeft = _mcqDeadline
+      ? Math.max(0, Math.floor((new Date(_mcqDeadline).getTime() - Date.now()) / 1000))
+      : 0;
+    UI.renderStudentTestTaking(_mcqActiveTest, _mcqQuestions, _mcqCurrentQ, _mcqAnswers, secondsLeft);
+  }
+
+  function _startMCQTimer() {
+    _stopMCQTimer();
+    _mcqTimerInterval = setInterval(() => {
+      const secondsLeft = _mcqDeadline
+        ? Math.max(0, Math.floor((new Date(_mcqDeadline).getTime() - Date.now()) / 1000))
+        : 0;
+      // Update just the timer display without re-rendering whole screen
+      const timerEl = document.querySelector('.mcq-timer');
+      if (timerEl) {
+        const mins    = Math.floor(secondsLeft / 60);
+        const secs    = secondsLeft % 60;
+        const timeStr = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+        // Preserve any child SVG icon nodes; only update the text node
+        const textNode = [...timerEl.childNodes].find(n => n.nodeType === 3);
+        if (textNode) textNode.textContent = ' ' + timeStr;
+        else timerEl.append(' ' + timeStr);
+        timerEl.className = 'mcq-timer' +
+          (secondsLeft < 120 ? ' mcq-timer--urgent' : secondsLeft < 300 ? ' mcq-timer--warn' : '');
+      }
+      if (secondsLeft <= 0) {
+        _stopMCQTimer();
+        UI.showToast('Time is up! Submitting automatically…', 'error');
+        _autoSubmitMCQ();
+      }
+    }, 1000);
+  }
+
+  function _stopMCQTimer() {
+    if (_mcqTimerInterval) { clearInterval(_mcqTimerInterval); _mcqTimerInterval = null; }
+  }
+
+  async function _autoSubmitMCQ() {
+    if (!_mcqAttemptId || !_mcqActiveTest) return;
+    const user = Storage.getCurrentUser();
+    if (!user) return;
+    try {
+      const result = await SupabaseSync.submitTestRPC(
+        _mcqAttemptId, _mcqActiveTest.id, user.linkedStudentId, _mcqAnswers
+      );
+      const autoStudent = Storage.getStudent(user.linkedBatchId, user.linkedStudentId);
+      if (autoStudent) {
+        const weeklyTests = Array.isArray(autoStudent.weeklyTests) ? [...autoStudent.weeklyTests] : [];
+        weeklyTests.push({ week: result.title, date: new Date().toISOString(), marks: result.score, total: result.total });
+        Storage.updateStudent(user.linkedBatchId, user.linkedStudentId, { weeklyTests });
+      }
+      const attempt = _mcqAttempts.find(a => a.id === _mcqAttemptId);
+      if (attempt) {
+        Object.assign(attempt, { status:'submitted', score:result.score, total:result.total, percentage:result.percentage, passed:result.passed });
+      }
+      UI.renderStudentTestResult(
+        attempt || { score:result.score, total:result.total, percentage:result.percentage, passed:result.passed },
+        result.title
+      );
+    } catch (err) {
+      console.error('Auto-submit error', err);
+      UI.showToast('Auto-submit failed. Contact your trainer.', 'error');
+    }
+  }
+
+  function _scheduleMCQAnswerSave() {
+    clearTimeout(_mcqSaveTimer);
+    _mcqSaveTimer = setTimeout(async () => {
+      if (!_mcqAttemptId) return;
+      try { await SupabaseSync.saveAnswers(_mcqAttemptId, _mcqAnswers); }
+      catch (e) { /* silent — answers are in memory, next save will retry */ }
+    }, 30000); // 30s debounce
+  }
+
+  // ─── Phase 4A: Trainer — view per-test results ───────────────────────────
+
+  async function _handleViewTestResults(testId, batchId) {
+    const panel   = document.getElementById('acad-panel');
+    const overlay = document.getElementById('acad-overlay');
+    if (!panel || !overlay) return;
+    // Open panel immediately with a loading state
+    panel.innerHTML = `<div class="slideout-body" style="padding:2rem;text-align:center;color:var(--text3)">Loading results…</div>`;
+    overlay.classList.add('slideout-overlay--open');
+    panel.classList.add('slideout-panel--open');
+    try {
+      const user = Storage.getCurrentUser();
+      const [tests, allAttempts] = await Promise.all([
+        SupabaseSync.fetchTests(user.id, batchId),
+        SupabaseSync.fetchAllTestAttempts(testId),
+      ]);
+      const test = tests.find(t => t.id === testId);
+      if (!test) throw new Error('Test not found');
+      // Build student name map and full student list from localStorage
+      const batch         = Storage.getBatch(batchId);
+      const batchStudents = batch?.students || [];
+      const studentMap    = {};
+      batchStudents.forEach(s => { studentMap[s.id] = s.name; });
+      panel.innerHTML = UI.testResultsPanel(test, allAttempts, studentMap, batchStudents);
+    } catch (err) {
+      panel.innerHTML = `<div class="slideout-body"><p style="color:var(--bad);padding:1rem">${err.message}</p></div>`;
+    }
+  }
+
+  // ─── Phase 4B: Student — review answers ─────────────────────────────────
+
+  async function _handleMCQReview(attemptId) {
+    if (!attemptId) return;
+    const user = Storage.getCurrentUser();
+    if (!user?.linkedStudentId) return;
+    const container = document.getElementById('student-main-content');
+    if (container) container.innerHTML = `<div style="padding:3rem;text-align:center;color:var(--text3)">Loading review…</div>`;
+    try {
+      const reviewData = await SupabaseSync.fetchAttemptReview(attemptId, user.linkedStudentId);
+      // Look up test title from cached state
+      const attempt  = _mcqAttempts.find(a => a.id === attemptId) || _mcqResultAttempt || {};
+      const test     = _mcqTests.find(t => t.id === attempt.test_id);
+      const title    = test?.title || 'Test Review';
+      UI.renderStudentAnswerReview(reviewData, title);
+    } catch (err) {
+      UI.showToast(`Could not load review: ${err.message}`, 'error');
+      // Fall back to MCQ test list (_navigateStudentTo is scoped inside bindStudentGlobalEvents)
+      _openMCQTests();
+    }
   }
 
   // ─── V4: Profile Page ─────────────────────────────────────────────────────
@@ -1217,7 +1560,7 @@ const App = (() => {
       const file = e.target.files[0];
       if (!file || typeof XLSX === 'undefined') return;
       const statusEl = document.getElementById('mb-plan-status');
-      if (statusEl) { statusEl.style.display = 'block'; statusEl.style.cssText = 'display:block;padding:10px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:.85rem;'; statusEl.textContent = '⏳ Parsing…'; }
+      if (statusEl) { statusEl.style.cssText = 'display:block;padding:10px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:.85rem;'; statusEl.textContent = '⏳ Parsing…'; }
       const reader = new FileReader();
       reader.onload = ev => {
         try {
@@ -1225,29 +1568,26 @@ const App = (() => {
           const sName = wb.SheetNames.includes('Logsheet') ? 'Logsheet' : wb.SheetNames[0];
           const ws    = wb.Sheets[sName];
           const rows  = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1 });
-          const plan  = [];
-          let curSubj = '';
+          const plan  = []; let curSubj = '';
           for (let i = 0; i < rows.length; i++) {
-            const r       = rows[i];
-            const subj    = (r[0] || '').toString().trim();
-            const sessNo  = r[1];
-            const rawT    = (r[2] || '').toString().replace(/\r\n|\r|\n/g,' ').trim();
-            const dur     = parseFloat(r[3]) || 0;
+            const r = rows[i];
+            const subj = (r[0] || '').toString().trim();
+            const rawT = (r[2] || '').toString().replace(/\r\n|\r|\n/g,' ').trim();
+            const dur  = parseFloat(r[3]) || 0;
             if (subj && subj.toLowerCase() !== 'subject') curSubj = subj;
             if (!rawT || rawT.toLowerCase() === 'total') continue;
             if (!curSubj) continue;
-            const sn = parseInt(sessNo);
+            const sn = parseInt(r[1]);
             if (isNaN(sn) || sn < 1) continue;
             plan.push({ subject: curSubj, sessionNo: sn, topic: rawT, durationHrs: dur });
           }
-          if (plan.length === 0) {
-            if (statusEl) { statusEl.style.cssText = 'display:block;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;'; statusEl.innerHTML = '⚠️ No sessions found. Check columns: <b>Subject</b> · <b>Sessions</b> · <b>Topic</b> · <b>Duration (Hrs.)</b>'; }
+          if (!plan.length) {
+            if (statusEl) { statusEl.style.cssText = 'display:block;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;'; statusEl.innerHTML = '⚠️ No sessions found. Check columns: <b>Subject · Sessions · Topic · Duration (Hrs.)</b>'; }
             return;
           }
           Storage.updateBatch(batchId, { coursePlan: plan });
           openManageBatch(batchId, 'session-plan');
-          const totalHrs = plan.reduce((s, r) => s + r.durationHrs, 0);
-          UI.showToast(`Session plan uploaded — ${plan.length} sessions, ${totalHrs} hrs`, 'success');
+          UI.showToast(`Session plan uploaded — ${plan.length} sessions, ${plan.reduce((s,r)=>s+r.durationHrs,0)} hrs`, 'success');
         } catch {
           if (statusEl) { statusEl.style.cssText = 'display:block;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;'; statusEl.textContent = '❌ Could not read the file.'; }
         }
@@ -1454,6 +1794,379 @@ const App = (() => {
       UI.showToast('Test removed.', 'success');
       _openTestsSlideOver(batchId, studentId);
     });
+  }
+
+  // ─── Question Bank — Phase QB ─────────────────────────────────────────────
+
+  async function openAcademicsQuestionBank(batchId) {
+    const batch = Storage.getBatch(batchId);
+    if (!batch) return;
+    state.view          = 'academics-question-bank';
+    state.navSection    = 'academics-question-bank';
+    state.activeBatchId = batchId;
+    Charts.destroyAll();
+    UI.setNavSection('academics-question-bank');
+    UI.renderSidebar(Storage.getMyBatches(), batchId);
+
+    const main = document.getElementById('main-content');
+    if (main) main.innerHTML = `<div class="loading-state" style="padding:3rem;text-align:center;color:var(--text3)">Loading question bank…</div>`;
+
+    try {
+      const user      = Storage.getCurrentUser();
+      const questions = await SupabaseSync.fetchQuestionBank(user.id);
+      UI.renderAcademicsQuestionBank(batch, questions);
+      _bindQuestionBankEvents(batchId);
+    } catch (err) {
+      if (main) main.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-title">Could not load question bank</div>
+          <div class="empty-state-msg">${err.message}</div>
+        </div>`;
+    }
+  }
+
+  function _bindQuestionBankEvents(batchId) {
+    document.getElementById('qb-file-input')?.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) _handleQuestionBankFile(file, batchId);
+      e.target.value = '';  // reset so same file can be re-selected
+    });
+    document.getElementById('acad-overlay')?.addEventListener('click', _closeAcadPanel);
+  }
+
+  function _handleQuestionBankFile(file, batchId) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb  = XLSX.read(e.target.result, { type: 'array' });
+        const ws  = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        if (!raw.length) { UI.showToast('No rows found in the file.', 'error'); return; }
+
+        const getCol = (row, ...keys) =>
+          keys.map(k => (row[k] || '').toString().trim()).find(v => v) || '';
+
+        const rows = raw.map(r => {
+          const question = getCol(r, 'Question', 'question', 'QUESTION');
+          const optionA  = getCol(r, 'Option A', 'OptionA', 'option a', 'OPTION A', 'option_a', 'A');
+          const optionB  = getCol(r, 'Option B', 'OptionB', 'option b', 'OPTION B', 'option_b', 'B');
+          const optionC  = getCol(r, 'Option C', 'OptionC', 'option c', 'OPTION C', 'option_c', 'C');
+          const optionD  = getCol(r, 'Option D', 'OptionD', 'option d', 'OPTION D', 'option_d', 'D');
+          const correct  = getCol(r, 'Correct Answer', 'Correct', 'correct', 'CORRECT', 'correct_answer', 'correct answer', 'Answer', 'answer', 'Ans', 'ans', 'ANS').toUpperCase();
+
+          let _error = null;
+          if (!question)                                    _error = 'Missing question';
+          else if (!optionA || !optionB || !optionC || !optionD) _error = 'Missing option(s)';
+          else if (!['A','B','C','D'].includes(correct))    _error = `Invalid answer: "${correct || 'blank'}"`;
+
+          return { question, optionA, optionB, optionC, optionD, correct, _error };
+        });
+
+        _qbPendingRows = rows;
+
+        const panel   = document.getElementById('acad-panel');
+        const overlay = document.getElementById('acad-overlay');
+        if (!panel || !overlay) return;
+        panel.innerHTML = UI.questionBankPreviewPanel(rows, batchId);
+        panel.classList.add('slideout-panel--open');
+        overlay.classList.add('slideout-overlay--open');
+
+      } catch {
+        UI.showToast('Could not read the file. Make sure it is a valid .xlsx or .csv file.', 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  async function _handleQuestionBankSave(btn, batchId) {
+    const valid = _qbPendingRows.filter(r => !r._error);
+    if (!valid.length) return;
+
+    btn.disabled    = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const user        = Storage.getCurrentUser();
+      const uploadBatch = crypto.randomUUID();
+      await SupabaseSync.uploadQuestions(user.id, batchId, valid, uploadBatch);
+      _closeAcadPanel();
+      _qbPendingRows = [];
+      UI.showToast(`${valid.length} question${valid.length !== 1 ? 's' : ''} saved to Question Bank!`, 'success');
+      openAcademicsQuestionBank(batchId);
+    } catch (err) {
+      UI.showToast(`Upload failed: ${err.message}`, 'error');
+      btn.disabled    = false;
+      btn.textContent = `Save ${valid.length} Question${valid.length !== 1 ? 's' : ''} to Bank`;
+    }
+  }
+
+  function _handleQBDownloadSample() {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer'],
+      ['What is the capital of India?',          'Mumbai',        'Delhi',          'Kolkata',  'Chennai', 'B'],
+      ['Which planet is known as Red Planet?',   'Earth',         'Mars',           'Jupiter',  'Venus',   'B'],
+      ['What is 2 + 2?',                         '3',             '4',              '5',        '6',       'B'],
+      ['Which is the largest ocean?',            'Atlantic',      'Indian',         'Arctic',   'Pacific', 'D'],
+      ['Who is the father of computers?',        'Newton',        'Edison',         'Charles Babbage', 'Tesla', 'C'],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Questions');
+    XLSX.writeFile(wb, 'spms_question_bank_sample.xlsx');
+  }
+
+  async function _handleDeleteUploadBatch(uploadBatchId, batchId) {
+    UI.showConfirm('Delete this entire upload batch? All questions in it will be permanently removed.', async () => {
+      try {
+        await SupabaseSync.deleteUploadBatch(uploadBatchId);
+        UI.showToast('Batch deleted.', 'success');
+        openAcademicsQuestionBank(batchId);
+      } catch (err) {
+        UI.showToast(`Delete failed: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // ─── Test Management — Phase TM ───────────────────────────────────────────
+
+  async function openAcademicsTestsMgmt(batchId) {
+    const batch = Storage.getBatch(batchId);
+    if (!batch) return;
+    state.view          = 'academics-tests-mgmt';
+    state.navSection    = 'academics-tests-mgmt';
+    state.activeBatchId = batchId;
+    Charts.destroyAll();
+    UI.setNavSection('academics-tests-mgmt');
+    UI.renderSidebar(Storage.getMyBatches(), batchId);
+
+    const main = document.getElementById('main-content');
+    if (main) main.innerHTML = `<div class="loading-state" style="padding:3rem;text-align:center;color:var(--text3)">Loading tests…</div>`;
+
+    try {
+      const user = Storage.getCurrentUser();
+      const [tests, questions, attemptCounts] = await Promise.all([
+        SupabaseSync.fetchTests(user.id, batchId),
+        SupabaseSync.fetchQuestionBank(user.id),
+        SupabaseSync.fetchActiveAttemptCounts(batchId),
+      ]);
+      _qbData    = questions;
+      _testsData = tests;
+      UI.renderAcademicsTestsMgmt(batch, tests, attemptCounts);
+      document.getElementById('acad-overlay')?.addEventListener('click', _closeAcadPanel);
+    } catch (err) {
+      if (main) main.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-title">Could not load tests</div>
+          <div class="empty-state-msg">${err.message}</div>
+        </div>`;
+    }
+  }
+
+  function _openCreateTestPanel(batchId) {
+    const batchMap = new Map();
+    _qbData.forEach(q => {
+      if (!batchMap.has(q.upload_batch)) {
+        batchMap.set(q.upload_batch, { created_at: q.created_at, count: 0 });
+      }
+      batchMap.get(q.upload_batch).count++;
+    });
+
+    const panel   = document.getElementById('acad-panel');
+    const overlay = document.getElementById('acad-overlay');
+    if (!panel || !overlay) return;
+
+    const batchStudents = Storage.getBatch(batchId)?.students || [];
+    panel.innerHTML = UI.createTestPanel([...batchMap.entries()], batchId, batchStudents);
+    panel.classList.add('slideout-panel--open');
+    overlay.classList.add('slideout-overlay--open');
+
+    // Show question count when trainer picks a batch
+    document.getElementById('ct-batch-select')?.addEventListener('change', e => {
+      const ubid    = e.target.value;
+      const count   = _qbData.filter(q => q.upload_batch === ubid).length;
+      const countEl = document.getElementById('ct-q-count');
+      if (countEl) countEl.textContent = ubid ? `${count} question${count !== 1 ? 's' : ''} will be included in this test` : '';
+    });
+
+    // P5: Select All toggle for student picker
+    document.getElementById('ct-select-all')?.addEventListener('change', e => {
+      document.querySelectorAll('[name="ct-student"]').forEach(cb => { cb.checked = e.target.checked; });
+    });
+    document.getElementById('ct-student-list')?.addEventListener('change', e => {
+      if (e.target.name === 'ct-student') {
+        const all = document.querySelectorAll('[name="ct-student"]');
+        const sa  = document.getElementById('ct-select-all');
+        if (sa) sa.checked = [...all].every(cb => cb.checked);
+      }
+    });
+  }
+
+  async function _handleCreateTestSave(btn, batchId) {
+    const title    = document.getElementById('ct-title')?.value.trim();
+    const duration = parseInt(document.getElementById('ct-duration')?.value);
+    const passPct  = parseInt(document.getElementById('ct-pass')?.value) || 50;
+    const ubid     = document.getElementById('ct-batch-select')?.value;
+
+    if (!title)                    { UI.showToast('Enter a test title.', 'error'); return; }
+    if (!duration || duration < 1) { UI.showToast('Enter a valid duration in minutes.', 'error'); return; }
+    if (!ubid)                     { UI.showToast('Select a question batch.', 'error'); return; }
+
+    const questionIds = _qbData.filter(q => q.upload_batch === ubid).map(q => q.id);
+    if (!questionIds.length)       { UI.showToast('Selected batch has no questions.', 'error'); return; }
+
+    // P5: collect selected students (required)
+    const selectedStudents = [...document.querySelectorAll('[name="ct-student"]:checked')].map(cb => cb.value);
+    if (!selectedStudents.length)  { UI.showToast('Select at least one student who can take this test.', 'error'); return; }
+
+    btn.disabled    = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const user = Storage.getCurrentUser();
+      await SupabaseSync.createTest({
+        trainer_id:          user.id,
+        batch_id:            batchId,
+        title,
+        duration_mins:       duration,
+        pass_percent:        passPct,
+        question_ids:        questionIds,
+        allowed_student_ids: selectedStudents,
+        status:              'draft',
+      });
+      _closeAcadPanel();
+      UI.showToast(`"${title}" saved as draft for ${selectedStudents.length} student${selectedStudents.length !== 1 ? 's' : ''}.`, 'success');
+      openAcademicsTestsMgmt(batchId);
+    } catch (err) {
+      UI.showToast(`Failed to save: ${err.message}`, 'error');
+      btn.disabled    = false;
+      btn.textContent = 'Save as Draft';
+    }
+  }
+
+  async function _handlePublishTest(testId, batchId) {
+    const test = _testsData.find(t => t.id === testId);
+    const studentCount = (test?.allowed_student_ids || []).length;
+    if (studentCount === 0) {
+      UI.showToast('Add at least one student before publishing. Click ⋮ → Manage Students.', 'error');
+      return;
+    }
+    UI.showConfirm(`Publish "${test?.title}"? ${studentCount} student${studentCount !== 1 ? 's' : ''} will be able to see and start it immediately.`, async () => {
+      try {
+        await SupabaseSync.updateTestStatus(testId, 'live');
+        UI.showToast('Test is now LIVE.', 'success');
+        openAcademicsTestsMgmt(batchId);
+      } catch (err) {
+        UI.showToast(`Failed: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  async function _handleCloseTest(testId, batchId) {
+    UI.showConfirm('Close this test? Students will no longer be able to start new attempts.', async () => {
+      try {
+        await SupabaseSync.updateTestStatus(testId, 'closed');
+        UI.showToast('Test closed.', 'success');
+        openAcademicsTestsMgmt(batchId);
+      } catch (err) {
+        UI.showToast(`Failed: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // P4: Re-open a closed test
+  async function _handleReopenTest(testId, batchId) {
+    const test = _testsData.find(t => t.id === testId);
+    const studentCount = (test?.allowed_student_ids || []).length;
+    UI.showConfirm(`Re-open "${test?.title}"? Students on the allowlist (${studentCount}) who haven't submitted will be able to take it.`, async () => {
+      try {
+        await SupabaseSync.updateTestStatus(testId, 'live');
+        UI.showToast('Test is live again.', 'success');
+        openAcademicsTestsMgmt(batchId);
+      } catch (err) {
+        UI.showToast(`Failed: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // P3: Delete any test (with attempt count warning for live/closed)
+  async function _handleDeleteTest(testId, batchId) {
+    const test    = _testsData.find(t => t.id === testId);
+    const title   = test?.title || 'this test';
+    const isDraft = test?.status === 'draft';
+
+    const doDelete = async () => {
+      try {
+        await SupabaseSync.deleteTestAndAttempts(testId);
+        UI.showToast('Test deleted.', 'success');
+        _closeAcadPanel();
+        openAcademicsTestsMgmt(batchId);
+      } catch (err) {
+        UI.showToast(`Failed: ${err.message}`, 'error');
+      }
+    };
+
+    if (isDraft) {
+      UI.showConfirm(`Delete "${title}"? This cannot be undone.`, doDelete);
+    } else {
+      // Fetch attempt count first so we can warn if submissions exist
+      const count = await SupabaseSync.fetchTestAttemptCount(testId);
+      const msg = count > 0
+        ? `Delete "${title}"? This will permanently remove ${count} student submission${count !== 1 ? 's' : ''} and all scores. This cannot be undone.`
+        : `Delete "${title}"? This cannot be undone.`;
+      UI.showConfirm(msg, doDelete);
+    }
+  }
+
+  // P5: Open manage students panel
+  async function _handleManageStudents(testId, batchId, from) {
+    const test  = _testsData.find(t => t.id === testId);
+    if (!test) { UI.showToast('Test not found.', 'error'); return; }
+    const batch         = Storage.getBatch(batchId);
+    const batchStudents = batch?.students || [];
+    const panel   = document.getElementById('acad-panel');
+    const overlay = document.getElementById('acad-overlay');
+    if (!panel) return;
+    const backAction = from === 'results' ? 'tests-results' : 'acad-close';
+    panel.innerHTML = UI.manageStudentsPanel(test, batchStudents, backAction);
+    // Ensure panel is open (may already be open when coming from results)
+    panel.classList.add('slideout-panel--open');
+    overlay?.classList.add('slideout-overlay--open');
+    // Wire Select All
+    document.getElementById('ms-select-all')?.addEventListener('change', e => {
+      document.querySelectorAll('[name="ms-student"]').forEach(cb => { cb.checked = e.target.checked; });
+    });
+    document.getElementById('ms-student-list')?.addEventListener('change', e => {
+      if (e.target.name === 'ms-student') {
+        const all = document.querySelectorAll('[name="ms-student"]');
+        const sa  = document.getElementById('ms-select-all');
+        if (sa) sa.checked = [...all].every(cb => cb.checked);
+      }
+    });
+  }
+
+  // P5: Save updated student allowlist
+  async function _handleSaveStudents(btn, testId, batchId, from) {
+    const selected = [...document.querySelectorAll('[name="ms-student"]:checked')].map(cb => cb.value);
+    if (!selected.length) { UI.showToast('Select at least one student.', 'error'); return; }
+    btn.disabled    = true;
+    btn.textContent = 'Saving…';
+    try {
+      await SupabaseSync.updateTestAllowlist(testId, selected);
+      // Update local cache so chips refresh correctly
+      const cached = _testsData.find(t => t.id === testId);
+      if (cached) cached.allowed_student_ids = selected;
+      UI.showToast(`Allowlist updated — ${selected.length} student${selected.length !== 1 ? 's' : ''}.`, 'success');
+      if (from === 'tests-results') {
+        _handleViewTestResults(testId, batchId);
+      } else {
+        _closeAcadPanel();
+        openAcademicsTestsMgmt(batchId);
+      }
+    } catch (err) {
+      UI.showToast(`Failed: ${err.message}`, 'error');
+      btn.disabled    = false;
+      btn.textContent = 'Save';
+    }
   }
 
   // ─── Mock Interviews — Phase 7 ────────────────────────────────────────────
@@ -2425,6 +3138,53 @@ const App = (() => {
     if (action === 'acad-close')       { _closeAcadPanel(); return; }
     if (action === 'acad-add-test')    { _handleAcadAddTest(btn); return; }
     if (action === 'acad-delete-test') { _handleAcadDeleteTest(btn); return; }
+
+    // Question Bank actions
+    // Test Management actions
+    if (action === 'tests-create')  { _openCreateTestPanel(state.activeBatchId); return; }
+    if (action === 'tests-cancel')  { _closeAcadPanel(); return; }
+    if (action === 'tests-save')    { _handleCreateTestSave(btn, btn.dataset.bid || state.activeBatchId); return; }
+    if (action === 'tests-publish') { _handlePublishTest(btn.dataset.tid, state.activeBatchId); return; }
+    if (action === 'tests-close')   { _handleCloseTest(btn.dataset.tid, state.activeBatchId); return; }
+    if (action === 'tests-reopen')  { _handleReopenTest(btn.dataset.tid, state.activeBatchId); return; }
+    if (action === 'tests-delete')  { _handleDeleteTest(btn.dataset.tid, state.activeBatchId); return; }
+    if (action === 'tests-results') { _handleViewTestResults(btn.dataset.tid, state.activeBatchId); return; }
+    if (action === 'tests-kebab')   {
+      e.stopPropagation(); // prevent document handler from immediately closing the menu
+      const menu = btn.closest('.kebab-wrap')?.querySelector('.kebab-menu');
+      const wasOpen = menu?.classList.contains('is-open');
+      // Close all open menus and clear any inline positioning from previous opens
+      document.querySelectorAll('.kebab-menu.is-open').forEach(m => {
+        m.classList.remove('is-open');
+        m.removeAttribute('style');
+      });
+      if (!wasOpen && menu) {
+        // Use position:fixed so the dropdown escapes the overflow:auto table wrapper
+        const rect = btn.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.right    = (window.innerWidth - rect.right) + 'px';
+        menu.style.left     = 'auto';
+        // Open upward if less than 220px below button, otherwise downward
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 220) {
+          menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+          menu.style.top    = 'auto';
+        } else {
+          menu.style.top    = (rect.bottom + 4) + 'px';
+          menu.style.bottom = 'auto';
+        }
+        menu.classList.add('is-open');
+      }
+      return;
+    }
+    if (action === 'tests-manage-students') { _handleManageStudents(btn.dataset.tid, state.activeBatchId, btn.dataset.from); return; }
+    if (action === 'tests-save-students')   { _handleSaveStudents(btn, btn.dataset.tid, state.activeBatchId, btn.dataset.from); return; }
+
+    if (action === 'qb-upload')          { document.getElementById('qb-file-input')?.click(); return; }
+    if (action === 'qb-download-sample') { _handleQBDownloadSample(); return; }
+    if (action === 'qb-cancel')          { _closeAcadPanel(); return; }
+    if (action === 'qb-save')            { _handleQuestionBankSave(btn, btn.dataset.bid || state.activeBatchId); return; }
+    if (action === 'qb-delete-batch')    { _handleDeleteUploadBatch(btn.dataset.ubid, state.activeBatchId); return; }
 
     // Student Remarks slide-over actions (Phase 8)
     if (action === 'remarks-close')  { _closeRemarksPanel(); return; }
@@ -3763,16 +4523,14 @@ const App = (() => {
         }
       );
 
-      // Import any students pre-loaded from the Excel picker
+      // Import students pre-loaded via the Excel picker
       const pendingStudents = window._pendingBatchStudents || [];
       pendingStudents.forEach(s => Storage.createStudent(batch.id, s));
       window._pendingBatchStudents = null;
 
       // Attach course plan if pre-loaded from course plan Excel
       const pendingPlan = window._pendingCoursePlan || null;
-      if (pendingPlan && pendingPlan.length > 0) {
-        Storage.updateBatch(batch.id, { coursePlan: pendingPlan });
-      }
+      if (pendingPlan && pendingPlan.length > 0) Storage.updateBatch(batch.id, { coursePlan: pendingPlan });
       window._pendingCoursePlan = null;
 
       modal.remove();
@@ -3781,8 +4539,7 @@ const App = (() => {
       const parts = [];
       if (pendingStudents.length > 0) parts.push(`${pendingStudents.length} student${pendingStudents.length !== 1 ? 's' : ''}`);
       if (pendingPlan && pendingPlan.length > 0) parts.push(`${pendingPlan.length} sessions plan`);
-      const stuSuffix = parts.length > 0 ? ` with ${parts.join(' & ')}!` : '!';
-      UI.showToast(`Batch "${name}" created${stuSuffix}`, 'success');
+      UI.showToast(`Batch "${name}" created${parts.length ? ' with ' + parts.join(' & ') : ''}!`, 'success');
     });
     bindModalClose(modal, () => { window._pendingBatchStudents = null; window._pendingCoursePlan = null; });
   }
@@ -3911,7 +4668,7 @@ const App = (() => {
         name,
         email:     document.getElementById('f-stu-email').value.trim(),
         phone:     document.getElementById('f-stu-phone').value.trim(),
-        studentId: customId   // blank = auto-generate inside storage.js
+        studentId: customId
       });
       modal.remove();
       UI.showToast(`Student "${name}" added!`, 'success');
@@ -3929,15 +4686,16 @@ const App = (() => {
       const name = document.getElementById('f-stu-name').value.trim();
       if (!name) { UI.showToast('Name is required', 'error'); return; }
       const newDisplayId = (document.getElementById('f-stu-id')?.value || '').trim();
+      const student0 = Storage.getStudent(batchId, studentId);
       Storage.updateStudent(batchId, studentId, {
         name,
         email:     document.getElementById('f-stu-email').value.trim(),
         phone:     document.getElementById('f-stu-phone').value.trim(),
-        studentId: newDisplayId || student.studentId  // keep existing if cleared
+        studentId: newDisplayId || (student0 && student0.studentId) || ''
       });
       modal.remove();
       UI.showToast('Student updated!', 'success');
-      if (state.view === 'profile')           openStudentProfile(batchId, studentId);
+      if (state.view === 'profile')       openStudentProfile(batchId, studentId);
       else if (state.view === 'manage-batch') openManageBatch(batchId, 'students');
       else selectBatch(batchId);
     });

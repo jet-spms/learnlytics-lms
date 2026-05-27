@@ -284,6 +284,704 @@
    ================================================================ */
 
 /* ================================================================
+   PHASE QB — Question Bank
+   ================================================================ */
+
+.qb-format-hint {
+  font-size: .8rem;
+  color: var(--text3);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .55rem .85rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
+}
+.qb-format-hint code {
+  background: var(--surface3, var(--border));
+  border-radius: 3px;
+  padding: .05rem .3rem;
+  font-size: .77rem;
+  color: var(--text);
+}
+
+.qb-batch-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .9rem 1rem;
+  margin-bottom: .65rem;
+}
+.qb-batch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.qb-batch-info {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.qb-batch-num {
+  font-weight: 600;
+  font-size: .88rem;
+  color: var(--text);
+}
+.qb-batch-date {
+  font-size: .8rem;
+  color: var(--text3);
+}
+.qb-batch-count {
+  font-size: .8rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: .15rem .6rem;
+  color: var(--text2);
+}
+
+.qb-error-banner {
+  background: var(--bad-bg, #fff1f0);
+  border: 1px solid var(--bad, #e53e3e);
+  color: var(--bad, #e53e3e);
+  border-radius: var(--radius);
+  padding: .5rem .85rem;
+  font-size: .82rem;
+  margin-bottom: .75rem;
+}
+
+tr.qb-preview-error td {
+  opacity: .55;
+}
+
+/* ================================================================
+   END OF PHASE QB
+   ================================================================ */
+
+/* ================================================================
+   PHASE TM — Test Management
+   ================================================================ */
+
+.tm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .2rem .65rem;
+  border-radius: 99px;
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.tm-badge--draft  { background: var(--surface2);   color: var(--text3); }
+.tm-badge--live   { background: var(--good-bg);    color: var(--good);  }
+.tm-badge--closed { background: var(--surface2);   color: var(--text3); }
+
+/* ================================================================
+   END OF PHASE TM
+   ================================================================ */
+
+/* ================================================================
+   PHASE 3 — Student MCQ Test-Taking
+   ================================================================ */
+
+/* ── Test List ──────────────────────────────────────────────────── */
+.mcq-list {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.mcq-group-label {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-top: 1rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid var(--border);
+}
+.mcq-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+.mcq-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  min-width: 0;
+}
+.mcq-card-title {
+  font-weight: 600;
+  font-size: .95rem;
+  color: var(--text1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mcq-card-meta {
+  font-size: .8rem;
+  color: var(--text3);
+}
+.mcq-card-score {
+  font-size: .85rem;
+  color: var(--text2);
+  font-weight: 500;
+}
+.mcq-card-right {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-shrink: 0;
+}
+.mcq-empty {
+  color: var(--text3);
+  font-size: .9rem;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+/* ── Status Badges ──────────────────────────────────────────────── */
+.mcq-badge {
+  display: inline-block;
+  padding: .2rem .6rem;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.mcq-badge--live     { background: var(--good-bg);  color: var(--good);  }
+.mcq-badge--closed   { background: var(--surface2); color: var(--text3); }
+.mcq-badge--passed   { background: var(--good-bg);  color: var(--good);  }
+.mcq-badge--failed   { background: var(--bad-bg);   color: var(--bad);   }
+.mcq-badge--expired  { background: var(--bad-bg);   color: var(--bad);   }
+
+/* ── Test-Taking Screen ─────────────────────────────────────────── */
+.mcq-taking-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.mcq-taking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+  flex-shrink: 0;
+}
+.mcq-taking-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mcq-timer {
+  font-variant-numeric: tabular-nums;
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text2);
+  flex-shrink: 0;
+}
+.mcq-timer--warn   { color: var(--warn, #f59e0b); }
+.mcq-timer--urgent { color: var(--bad); animation: mcq-blink .8s step-end infinite; }
+@keyframes mcq-blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.mcq-taking-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Question area ──────────────────────────────────────────────── */
+.mcq-question-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.mcq-q-meta {
+  font-size: .78rem;
+  color: var(--text3);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.mcq-q-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text1);
+  line-height: 1.5;
+}
+.mcq-options {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.mcq-option {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, background .15s;
+  color: var(--text1);
+  width: 100%;
+}
+.mcq-option:hover {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+.mcq-option--selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.mcq-opt-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--surface2);
+  font-size: .8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: var(--text2);
+}
+.mcq-option--selected .mcq-opt-label {
+  background: var(--accent);
+  color: #fff;
+}
+.mcq-opt-text {
+  font-size: .9rem;
+  color: var(--text1);
+}
+.mcq-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: .5rem;
+}
+.mcq-answered-count {
+  font-size: .8rem;
+  color: var(--text3);
+}
+
+/* ── Palette ────────────────────────────────────────────────────── */
+.mcq-palette-area {
+  width: 200px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  overflow-y: auto;
+}
+.mcq-palette-title {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.mcq-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+.mcq-pal-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-size: .78rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .12s;
+}
+.mcq-pal-btn--answered {
+  background: var(--good-bg);
+  border-color: var(--good);
+  color: var(--good);
+}
+.mcq-pal-btn--current {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.mcq-palette-legend {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  font-size: .72rem;
+}
+.mcq-leg {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--text3);
+}
+.mcq-leg::before {
+  content: '';
+  width: .75rem;
+  height: .75rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.mcq-leg--answered::before   { background: var(--good-bg);  border: 1px solid var(--good);  }
+.mcq-leg--current::before    { background: var(--accent);   border: 1px solid var(--accent); }
+.mcq-leg--unanswered::before { background: var(--surface2); border: 1px solid var(--border); }
+
+.btn--full-w { width: 100%; }
+
+/* ── Results screen ─────────────────────────────────────────────── */
+.mcq-result-wrap {
+  max-width: 480px;
+  margin: 2rem auto;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-align: center;
+}
+.mcq-result-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1.5rem 1.5rem;
+  gap: .5rem;
+}
+.mcq-result-header--pass { background: var(--good-bg); }
+.mcq-result-header--fail { background: var(--bad-bg);  }
+.mcq-result-icon    { font-size: 2.5rem; line-height: 1; }
+.mcq-result-verdict { font-size: 1.5rem; font-weight: 800; color: var(--text1); }
+.mcq-result-test-title { font-size: .9rem; color: var(--text2); }
+.mcq-result-body {
+  display: flex;
+  justify-content: space-around;
+  padding: 1.5rem 1rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.mcq-result-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+}
+.mcq-result-num   { font-size: 2rem; font-weight: 800; color: var(--text1); }
+.mcq-result-label { font-size: .75rem; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; }
+.mcq-result-pct-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text1);
+}
+
+/* ── Responsive: stack palette below question on narrow screens ──── */
+@media (max-width: 640px) {
+  .mcq-taking-body   { flex-direction: column; overflow-y: auto; }
+  .mcq-palette-area  { width: 100%; border-left: none; border-top: 1px solid var(--border);
+                        flex-direction: row; flex-wrap: wrap; align-items: flex-start; padding: .75rem; }
+  .mcq-palette-title { order: -1; width: 100%; }
+  .mcq-palette-legend{ flex-direction: row; flex-wrap: wrap; gap: .5rem; order: 2; }
+  .mcq-palette-area .btn--full-w { order: 3; width: 100%; }
+}
+
+/* ================================================================
+   END OF PHASE 3
+   ================================================================ */
+
+/* ================================================================
+   PHASE 4 — Results Views
+   ================================================================ */
+
+/* ── Trainer: test results slide-over summary strip ─────────────── */
+.tr-summary {
+  display: flex;
+  gap: .5rem;
+  background: var(--surface1);
+  border-radius: .6rem;
+  padding: .75rem .5rem;
+}
+.tr-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+  padding: .25rem .5rem;
+  border-right: 1px solid var(--border);
+}
+.tr-stat:last-child { border-right: none; }
+.tr-stat-num {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text1);
+  line-height: 1;
+}
+.tr-stat-lbl {
+  font-size: .72rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ── Student: answer review question cards ───────────────────────── */
+.mcq-rev-q {
+  background: var(--surface1);
+  border-radius: .65rem;
+  padding: 1rem;
+  margin-bottom: .85rem;
+  border-left: 3px solid var(--border);
+}
+.mcq-rev-q--correct { border-left-color: var(--good); }
+.mcq-rev-q--wrong   { border-left-color: var(--bad);  }
+
+.mcq-rev-q-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .35rem;
+}
+.mcq-rev-q-num {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.mcq-rev-q-icon {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.mcq-rev-q--correct .mcq-rev-q-icon { color: var(--good); }
+.mcq-rev-q--wrong   .mcq-rev-q-icon { color: var(--bad);  }
+
+/* Review option states (layered on top of base .mcq-option styles) */
+.mcq-rev-opt {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .55rem .75rem;
+  border-radius: .5rem;
+  border: 1.5px solid var(--border);
+  margin-bottom: .4rem;
+  font-size: .9rem;
+  color: var(--text2);
+  background: var(--surface0);
+  position: relative;
+}
+.mcq-rev-opt--correct {
+  border-color: var(--good);
+  background: color-mix(in srgb, var(--good) 10%, transparent);
+  color: var(--text1);
+}
+.mcq-rev-opt--wrong {
+  border-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 10%, transparent);
+  color: var(--text1);
+}
+.mcq-rev-icon {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: .9rem;
+}
+.mcq-rev-opt--correct .mcq-rev-icon { color: var(--good); }
+.mcq-rev-opt--wrong   .mcq-rev-icon { color: var(--bad);  }
+
+.mcq-rev-skipped {
+  font-size: .8rem;
+  color: var(--text3);
+  font-style: italic;
+  margin: .5rem 0 0;
+}
+
+@media (max-width: 640px) {
+  .tr-summary { flex-wrap: wrap; }
+  .tr-stat     { min-width: 45%; border-right: none; border-bottom: 1px solid var(--border); }
+  .tr-stat:nth-child(3),
+  .tr-stat:nth-child(4) { border-bottom: none; }
+}
+
+/* ── Review: list layout container ──────────────────────────────── */
+.mcq-rev-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1rem 1rem 2rem;
+  gap: 0;
+}
+
+/* ── Trainer: safe-to-close banner inside Results panel ─────────── */
+.tr-safe-banner {
+  background: color-mix(in srgb, var(--good) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--good) 40%, transparent);
+  color: var(--good);
+  border-radius: .5rem;
+  padding: .6rem .85rem;
+  font-size: .84rem;
+  font-weight: 600;
+  margin-bottom: .75rem;
+}
+
+/* ── Trainer: section labels inside Results panel ───────────────── */
+.tr-section-label {
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
+  margin: 1rem 0 .45rem;
+}
+.tr-section-label--active  { color: var(--warn, #f59e0b); }
+.tr-section-label--expired { color: var(--text3); }
+
+/* ── Trainer: student pill list (in-progress / expired / not-started) */
+.tr-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: .25rem;
+}
+.tr-pill {
+  font-size: .78rem;
+  padding: .25rem .6rem;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+.tr-pill--active  { background: color-mix(in srgb, var(--warn, #f59e0b) 15%, transparent); border-color: var(--warn, #f59e0b); color: var(--text1); }
+.tr-pill--expired { background: var(--surface1); color: var(--text3); }
+
+/* ── Trainer Tests table: safe-to-close + active-count chips ────── */
+.tm-safe-close {
+  display: inline-block;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--good);
+  background: color-mix(in srgb, var(--good) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--good) 30%, transparent);
+  border-radius: 999px;
+  padding: .15rem .5rem;
+  margin-left: .5rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.tm-active-count {
+  display: inline-block;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--warn, #f59e0b);
+  background: color-mix(in srgb, var(--warn, #f59e0b) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn, #f59e0b) 30%, transparent);
+  border-radius: 999px;
+  padding: .15rem .5rem;
+  margin-left: .5rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ── Tests table: kebab divider ─────────────────────────────────── */
+.kebab-divider {
+  height: 1px;
+  background: var(--border);
+  margin: .25rem 0;
+}
+
+/* ── Tests table: no-students warning chip ──────────────────────── */
+.tm-no-students {
+  display: inline-block;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--warn, #f59e0b);
+  background: color-mix(in srgb, var(--warn, #f59e0b) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn, #f59e0b) 30%, transparent);
+  border-radius: 999px;
+  padding: .15rem .5rem;
+  margin-left: .5rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ── Create Test / Manage Students: student picker ──────────────── */
+.ct-student-section-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin: 1.1rem 0 .4rem;
+}
+.ct-student-help {
+  font-size: .82rem;
+  color: var(--text3);
+  margin-bottom: .5rem;
+}
+.ct-student-list {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: .5rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.ct-student-item {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  font-size: .875rem;
+  cursor: pointer;
+  padding: .25rem .3rem;
+  border-radius: 4px;
+  user-select: none;
+}
+.ct-student-item:hover { background: var(--surface2); }
+.ct-student-item input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.ct-student-select-all {
+  padding-bottom: .45rem;
+  margin-bottom: .2rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+/* ================================================================
+   END OF PHASE 4
+   ================================================================ */
+
+/* ================================================================
    PHASE 7 — Mock Interviews
    ================================================================ */
 

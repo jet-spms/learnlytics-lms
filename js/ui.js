@@ -34,7 +34,9 @@ const UI = (() => {
   const { renderStudentTopbar, renderStudentProfileDrawerContent, renderStudentSidebar,
           renderStudentDashboard, renderStudentAttendance, renderStudentTestScores,
           renderStudentMockHistory, renderStudentPlacement, renderStudentSettings,
-          showCreateStudentLoginModal } = UIStudentPortal;
+          showCreateStudentLoginModal,
+          renderStudentMCQTests, renderStudentTestTaking, renderStudentTestResult,
+          renderStudentAnswerReview } = UIStudentPortal;
 
   // ─── Aliases from ui-nav-sidebar.js (Phase 4C) ───────────────────────────
   const { setNavSection, setNavMode, toggleNavGroup,
@@ -1576,9 +1578,7 @@ const UI = (() => {
             <div id="batch-plan-preview" style="display:none;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;"></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;margin:0 0 1rem;color:var(--text3,#94a3b8);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;">
-            <div style="flex:1;height:1px;background:var(--border,#334155)"></div>
-            <span>or fill in manually</span>
-            <div style="flex:1;height:1px;background:var(--border,#334155)"></div>
+            <div style="flex:1;height:1px;background:var(--border,#334155)"></div><span>or fill in manually</span><div style="flex:1;height:1px;background:var(--border,#334155)"></div>
           </div>
           ` : ''}
           <div class="form-group">
@@ -1627,21 +1627,15 @@ const UI = (() => {
       </div>`;
     document.body.appendChild(modal);
 
-    // ── Excel import wiring (new batch only) ──────────────────────────────
     if (!existing) {
-      window._pendingBatchStudents = null; // clear any stale data from previous open
+      window._pendingBatchStudents = null;
+      window._pendingCoursePlan    = null;
 
       const xlFile = document.getElementById('batch-xl-file');
       const xlDrop = document.getElementById('batch-xl-drop');
 
       function _parseBatchXL(file) {
-        if (!file) return;
-        if (typeof XLSX === 'undefined') {
-          const prev = document.getElementById('batch-xl-preview');
-          prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;';
-          prev.innerHTML = '❌ XLSX library not loaded. Please refresh the page.';
-          return;
-        }
+        if (!file || typeof XLSX === 'undefined') return;
         const reader = new FileReader();
         reader.onload = ev => {
           try {
@@ -1649,136 +1643,74 @@ const UI = (() => {
             const ws   = wb.Sheets[wb.SheetNames[0]];
             const raw  = XLSX.utils.sheet_to_json(ws, { defval: '' });
             const strip = s => s.toString().replace(/<[^>]*>/g, '').trim();
-
-            const batchNo = strip(
-              raw[0]?.['Batch No'] || raw[0]?.['Batch Number'] ||
-              raw[0]?.['BatchNo']  || raw[0]?.['BATCH NO']     || ''
-            );
+            const batchNo = strip(raw[0]?.['Batch No'] || raw[0]?.['Batch Number'] || raw[0]?.['BatchNo'] || raw[0]?.['BATCH NO'] || '');
             const students = raw.map(r => ({
               name:      strip(r['Full Name']        || r['Name']    || r['name']    || r['NAME']   || r['FULL NAME'] || ''),
               email:     strip(r['E-mail ID']         || r['Email ID']|| r['Email']  || r['email']  || r['EMAIL']    || r['E-Mail'] || ''),
               phone:     strip(r['Phone']             || r['phone']  || r['PHONE']   || r['Mobile'] || r['mobile']   || r['Contact'] || ''),
               studentId: strip(r['Enrollment Number'] || r['Enrollment No'] || r['Student ID'] || r['ID'] || r['Enroll No'] || ''),
             })).filter(r => r.name);
-
-            if (batchNo) {
-              const nameEl = document.getElementById('f-batch-name');
-              const codeEl = document.getElementById('f-batch-code');
-              if (nameEl && !nameEl.value) nameEl.value = batchNo;
-              if (codeEl && !codeEl.value) codeEl.value = batchNo;
-            }
-
+            if (batchNo) { const n=document.getElementById('f-batch-name'); const c=document.getElementById('f-batch-code'); if(n&&!n.value)n.value=batchNo; if(c&&!c.value)c.value=batchNo; }
             window._pendingBatchStudents = students.length > 0 ? students : null;
-
             const prev = document.getElementById('batch-xl-preview');
-            const labelEl = document.getElementById('batch-xl-label');
-            if (labelEl) labelEl.textContent = file.name;
-
+            const lbl  = document.getElementById('batch-xl-label');
+            if (lbl) lbl.textContent = file.name;
             if (students.length > 0) {
               prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;';
-              prev.innerHTML =
-                `✅ <strong>${file.name}</strong> — ` +
-                `<strong>${students.length} student${students.length !== 1 ? 's' : ''}</strong> ready to import` +
-                (batchNo ? ` · Batch detected: <strong>${batchNo}</strong>` : '');
+              prev.innerHTML = `✅ <strong>${file.name}</strong> — <strong>${students.length} students</strong> ready${batchNo?` · Batch: <strong>${batchNo}</strong>`:''}`;
             } else {
-              prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;line-height:1.5;';
-              prev.innerHTML = '⚠️ No students found. Expected columns: <b>Full Name</b> · <b>Enrollment Number</b> · <b>E-mail ID</b> · <b>Phone</b>';
+              prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;';
+              prev.innerHTML = '⚠️ No students found. Expected columns: <b>Full Name · Enrollment Number · E-mail ID · Phone</b>';
             }
-          } catch {
-            const prev = document.getElementById('batch-xl-preview');
-            prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;';
-            prev.innerHTML = '❌ Could not read the file. Make sure it is a valid .xlsx file.';
-          }
+          } catch { const prev=document.getElementById('batch-xl-preview'); prev.style.cssText='display:block;margin-top:.5rem;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;'; prev.innerHTML='❌ Could not read the file.'; }
         };
         reader.readAsArrayBuffer(file);
       }
-
-      xlFile?.addEventListener('change', e => _parseBatchXL(e.target.files[0]));
-      xlDrop?.addEventListener('dragover',  e => { e.preventDefault(); xlDrop.style.borderColor = 'var(--accent,#0277fa)'; xlDrop.style.background = 'var(--surface,#0f172a)'; });
-      xlDrop?.addEventListener('dragleave', () => { xlDrop.style.borderColor = ''; xlDrop.style.background = ''; });
-      xlDrop?.addEventListener('drop', e => {
-        e.preventDefault();
-        xlDrop.style.borderColor = '';
-        xlDrop.style.background  = '';
-        _parseBatchXL(e.dataTransfer.files[0]);
-      });
-
-      // ── Course Plan Excel parsing ─────────────────────────────────────
-      const planFile = document.getElementById('batch-plan-file');
-      const planDrop = document.getElementById('batch-plan-drop');
-      window._pendingCoursePlan = null;
 
       function _parseCoursePlanXL(file) {
         if (!file || typeof XLSX === 'undefined') return;
         const reader = new FileReader();
         reader.onload = ev => {
           try {
-            const wb     = XLSX.read(ev.target.result, { type: 'array' });
-            const sName  = wb.SheetNames.includes('Logsheet') ? 'Logsheet' : wb.SheetNames[0];
-            const ws     = wb.Sheets[sName];
-            const rows   = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1 });
-            const plan   = [];
-            let curSubj  = '';
-
-            for (let i = 0; i < rows.length; i++) {
-              const r       = rows[i];
-              const subj    = (r[0] || '').toString().trim();
-              const sessNo  = r[1];
-              const rawTopic= (r[2] || '').toString().replace(/\r\n|\r|\n/g, ' ').trim();
-              const durRaw  = r[3];
-              const dur     = parseFloat(durRaw) || 0;
-
-              if (subj && subj.toLowerCase() !== 'subject') curSubj = subj;
-              if (!rawTopic || rawTopic.toLowerCase() === 'total') continue;
-              if (!curSubj || (!sessNo && !rawTopic)) continue;
-              const sn = parseInt(sessNo);
-              if (isNaN(sn) || sn < 1) continue;
-
-              plan.push({
-                subject:     curSubj,
-                sessionNo:   sn,
-                topic:       rawTopic,
-                durationHrs: dur
-              });
+            const wb    = XLSX.read(ev.target.result, { type: 'array' });
+            const sName = wb.SheetNames.includes('Logsheet') ? 'Logsheet' : wb.SheetNames[0];
+            const rows  = XLSX.utils.sheet_to_json(wb.Sheets[sName], { defval: '', header: 1 });
+            const strip = s => s.toString().replace(/<[^>]*>/g, '').trim();
+            const plan  = []; let curSubj = '';
+            for (let i=0;i<rows.length;i++) {
+              const r=rows[i]; const subj=strip(r[0]||''); const rawT=strip((r[2]||'').toString().replace(/\r\n|\r|\n/g,' ')); const dur=parseFloat(r[3])||0;
+              if(subj&&subj.toLowerCase()!=='subject') curSubj=subj;
+              if(!rawT||rawT.toLowerCase()==='total'||!curSubj) continue;
+              const sn=parseInt(r[1]); if(isNaN(sn)||sn<1) continue;
+              plan.push({subject:curSubj,sessionNo:sn,topic:rawT,durationHrs:dur});
             }
-
             window._pendingCoursePlan = plan.length > 0 ? plan : null;
-
-            const prev    = document.getElementById('batch-plan-preview');
-            const labelEl = document.getElementById('batch-plan-label');
-            if (labelEl) labelEl.textContent = file.name;
-
-            if (plan.length > 0) {
-              const subjects  = [...new Set(plan.map(r => r.subject))];
-              const totalHrs  = plan.reduce((s, r) => s + r.durationHrs, 0);
-              prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;';
-              prev.innerHTML =
-                `✅ <strong>${file.name}</strong> — ` +
-                `<strong>${plan.length} sessions</strong>, <strong>${totalHrs} hrs</strong> across <strong>${subjects.length} subjects</strong>`;
+            const prev=document.getElementById('batch-plan-preview'); const lbl=document.getElementById('batch-plan-label');
+            if(lbl) lbl.textContent=file.name;
+            if(plan.length>0){
+              const subjCount=[...new Set(plan.map(r=>r.subject))].length; const totalHrs=plan.reduce((s,r)=>s+r.durationHrs,0);
+              prev.style.cssText='display:block;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;';
+              prev.innerHTML=`✅ <strong>${file.name}</strong> — <strong>${plan.length} sessions</strong>, <strong>${totalHrs} hrs</strong> across <strong>${subjCount} subjects</strong>`;
             } else {
-              prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;';
-              prev.innerHTML = '⚠️ No sessions found. Expected columns: <b>Subject</b> · <b>Sessions</b> · <b>Topic</b> · <b>Duration (Hrs.)</b>';
+              prev.style.cssText='display:block;margin-top:.5rem;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;';
+              prev.innerHTML='⚠️ No sessions found. Expected: <b>Subject · Sessions · Topic · Duration (Hrs.)</b>';
             }
-          } catch {
-            const prev = document.getElementById('batch-plan-preview');
-            prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;';
-            prev.innerHTML = '❌ Could not read the course plan file.';
-          }
+          } catch { const prev=document.getElementById('batch-plan-preview'); prev.style.cssText='display:block;margin-top:.5rem;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;'; prev.innerHTML='❌ Could not read the file.'; }
         };
         reader.readAsArrayBuffer(file);
       }
 
-      planFile?.addEventListener('change', e => _parseCoursePlanXL(e.target.files[0]));
-      planDrop?.addEventListener('dragover',  e => { e.preventDefault(); planDrop.style.borderColor = 'var(--accent,#0277fa)'; planDrop.style.background = 'var(--surface,#0f172a)'; });
-      planDrop?.addEventListener('dragleave', () => { planDrop.style.borderColor = ''; planDrop.style.background = ''; });
-      planDrop?.addEventListener('drop', e => {
-        e.preventDefault();
-        planDrop.style.borderColor = '';
-        planDrop.style.background  = '';
-        _parseCoursePlanXL(e.dataTransfer.files[0]);
-      });
+      xlFile?.addEventListener('change', e => _parseBatchXL(e.target.files[0]));
+      xlDrop?.addEventListener('dragover', e=>{e.preventDefault();xlDrop.style.borderColor='var(--accent,#0277fa)';xlDrop.style.background='var(--surface,#0f172a)';});
+      xlDrop?.addEventListener('dragleave', ()=>{xlDrop.style.borderColor='';xlDrop.style.background='';});
+      xlDrop?.addEventListener('drop', e=>{e.preventDefault();xlDrop.style.borderColor='';xlDrop.style.background='';_parseBatchXL(e.dataTransfer.files[0]);});
+
+      const planFile=document.getElementById('batch-plan-file'); const planDrop=document.getElementById('batch-plan-drop');
+      planFile?.addEventListener('change', e=>_parseCoursePlanXL(e.target.files[0]));
+      planDrop?.addEventListener('dragover', e=>{e.preventDefault();planDrop.style.borderColor='var(--accent,#0277fa)';planDrop.style.background='var(--surface,#0f172a)';});
+      planDrop?.addEventListener('dragleave', ()=>{planDrop.style.borderColor='';planDrop.style.background='';});
+      planDrop?.addEventListener('drop', e=>{e.preventDefault();planDrop.style.borderColor='';planDrop.style.background='';_parseCoursePlanXL(e.dataTransfer.files[0]);});
     }
-    // ─────────────────────────────────────────────────────────────────────
 
     document.getElementById('f-batch-name').focus();
     return modal;
@@ -1811,9 +1743,7 @@ const UI = (() => {
                 title="Generate a new ID" style="padding:.45rem .7rem;white-space:nowrap;flex-shrink:0;">↻ New ID</button>` : ''}
             </div>
             <p style="font-size:.76rem;color:var(--text3);margin-top:.3rem;">
-              ${existing
-                ? 'You can rename the display ID — internal data is not affected.'
-                : 'Type your own ID (e.g. <b>JK001</b>) or leave blank and one will be created for you.'}
+              ${existing ? 'You can rename the display ID — internal data is not affected.' : 'Type your own ID (e.g. <b>JK001</b>) or leave blank and one will be created for you.'}
             </p>
           </div>
           <div class="form-group">
@@ -1834,8 +1764,6 @@ const UI = (() => {
       </div>`;
     document.body.appendChild(modal);
     document.getElementById('f-stu-name').focus();
-
-    // ── Regen button: generates a new random preview ID on click ────────────
     const regenBtn = document.getElementById('btn-regen-id');
     if (regenBtn) {
       regenBtn.addEventListener('click', () => {
@@ -1853,7 +1781,6 @@ const UI = (() => {
     const tableRows = rows.map((r, i) => `
       <tr>
         <td style="padding:.4rem .6rem">${i + 1}</td>
-        <td style="padding:.4rem .6rem;font-family:monospace;font-size:.82rem;color:#fbbf24">${r.studentId ? escHtml(r.studentId) : '<span style="color:#64748b">auto</span>'}</td>
         <td style="padding:.4rem .6rem">${r.name ? escHtml(r.name) : '<span style="color:#f87171">—</span>'}</td>
         <td style="padding:.4rem .6rem">${r.email ? escHtml(r.email) : '—'}</td>
         <td style="padding:.4rem .6rem">${r.phone ? escHtml(r.phone) : '—'}</td>
@@ -1871,13 +1798,10 @@ const UI = (() => {
               Your Excel sheet must have these columns in the <strong>first row</strong>:
             </p>
             <div style="background:#0F172A;border-radius:8px;padding:.75rem 1rem;font-family:monospace;font-size:.85rem;margin-bottom:1rem;color:#fbbf24">
-              Enrollment Number &nbsp;|&nbsp; Full Name &nbsp;|&nbsp; E-mail ID &nbsp;|&nbsp; Phone
+              Name &nbsp;|&nbsp; Email &nbsp;|&nbsp; Phone
             </div>
-            <p style="color:#64748b;font-size:.82rem;margin-bottom:.5rem">
-              Also accepts: <span style="color:#94a3b8">Name, Email, Phone</span> — Enrollment Number and E-mail ID are optional.
-            </p>
             <p style="color:#64748b;font-size:.82rem;margin-bottom:1.25rem">
-              ✅ <strong style="color:#f1f5f9">Jetking format supported directly</strong> — upload your "Students Details.xlsx" as-is.
+              Email and Phone are optional. Each row after the header becomes one student.
             </p>
             <a id="bulk-download-template" href="#" style="color:#0277FA;font-size:.85rem;text-decoration:underline">
               Download sample template
@@ -1891,7 +1815,6 @@ const UI = (() => {
                 <thead>
                   <tr style="background:rgba(255,255,255,.06);text-align:left">
                     <th style="padding:.5rem .6rem;color:#94a3b8">#</th>
-                    <th style="padding:.5rem .6rem;color:#94a3b8">Enrollment / ID</th>
                     <th style="padding:.5rem .6rem;color:#94a3b8">Name</th>
                     <th style="padding:.5rem .6rem;color:#94a3b8">Email</th>
                     <th style="padding:.5rem .6rem;color:#94a3b8">Phone</th>
@@ -2123,11 +2046,6 @@ const UI = (() => {
                 <input type="text" id="auth-signup-phone" class="form-input auth-input"
                   placeholder="+91 XXXXX XXXXX" autocomplete="tel">
               </div>
-              <div class="form-group">
-                <label class="auth-label">Admin Key <span class="auth-optional">(optional — only for admins)</span></label>
-                <input type="password" id="auth-signup-adminkey" class="form-input auth-input"
-                  placeholder="Leave blank for Trainer account">
-              </div>
               <div class="auth-error" id="auth-signup-error"></div>
               <button class="btn btn-primary btn-auth" id="btn-do-signup">Create Account →</button>
             </div>
@@ -2179,10 +2097,9 @@ const UI = (() => {
       const p2       = container.querySelector('#auth-signup-confirm')?.value         || '';
       const email    = container.querySelector('#auth-signup-email')?.value.trim()    || '';
       const phone    = container.querySelector('#auth-signup-phone')?.value.trim()    || '';
-      const adminKey = container.querySelector('#auth-signup-adminkey')?.value        || '';
       _authShowError('auth-signup-error', '');
       if (p !== p2) { _authShowError('auth-signup-error', 'Passwords do not match.'); return; }
-      onSignup({ username: u, password: p, fullName, email, phone, adminKey });
+      onSignup({ username: u, password: p, fullName, email, phone });
     });
 
     // Focus first field
@@ -2291,6 +2208,422 @@ const UI = (() => {
    * attributes caught by handleMainClick in app.js.
    */
   // ─── Academics Screens (Phase 6) ──────────────────────────────────────────
+
+  function renderAcademicsTestsMgmt(batch, tests, attemptCounts = {}) {
+    const main = document.getElementById('main-content');
+    if (!main) return;
+
+    const statusBadge = s => {
+      const map = { draft: ['tm-badge--draft','Draft'], live: ['tm-badge--live','Live'], closed: ['tm-badge--closed','Closed'] };
+      const [cls, label] = map[s] || ['tm-badge--draft', s];
+      return `<span class="tm-badge ${cls}">${label}</span>`;
+    };
+
+    // Option C: "Safe to close" chip + no-students warning
+    const safeToCloseChip = t => {
+      const noStudents = !(t.allowed_student_ids || []).length;
+      if (noStudents) return `<span class="tm-no-students" title="No students assigned — add students before publishing">⚠ No students</span>`;
+      if (t.status !== 'live') return '';
+      const c = attemptCounts[t.id];
+      if (!c) return '';
+      if (c.active === 0 && c.submitted > 0)
+        return `<span class="tm-safe-close" title="No students currently mid-test">✓ Safe to close</span>`;
+      if (c.active > 0)
+        return `<span class="tm-active-count">${c.active} in progress</span>`;
+      return '';
+    };
+
+    // P2: kebab dropdown — all actions in one ⋮ menu
+    const rowActions = t => {
+      const studentCount = (t.allowed_student_ids || []).length;
+      const manageItem = `<button class="kebab-item" data-action="tests-manage-students" data-tid="${t.id}" data-from="list">${_ICONS.users} Manage Students${studentCount ? ` (${studentCount})` : ''}</button>`;
+      const resultsItem = `<button class="kebab-item" data-action="tests-results" data-tid="${t.id}">${_ICONS.chartBar} Results</button>`;
+      const publishItem = t.status === 'draft'
+        ? `<button class="kebab-item" data-action="tests-publish" data-tid="${t.id}">${_ICONS.publish} Publish</button>` : '';
+      const closeItem = t.status === 'live'
+        ? `<button class="kebab-item" data-action="tests-close" data-tid="${t.id}">${_ICONS.lockClosed} Close Test</button>` : '';
+      const reopenItem = t.status === 'closed'
+        ? `<button class="kebab-item" data-action="tests-reopen" data-tid="${t.id}">${_ICONS.lockOpen} Re-open</button>` : '';
+      const showResults = t.status === 'live' || t.status === 'closed';
+      return `
+        <div class="kebab-wrap">
+          <button class="btn-kebab" data-action="tests-kebab" title="More actions">${_ICONS.dotsV}</button>
+          <div class="kebab-menu">
+            ${manageItem}
+            ${showResults ? resultsItem : ''}
+            ${publishItem}${closeItem}${reopenItem}
+            <div class="kebab-divider"></div>
+            <button class="kebab-item kebab-item--danger" data-action="tests-delete" data-tid="${t.id}">${_ICONS.trash} Delete</button>
+          </div>
+        </div>`;
+    };
+
+    const rows = tests.map(t => `
+      <tr>
+        <td>
+          <strong>${escHtml(t.title)}</strong>
+          ${safeToCloseChip(t)}
+        </td>
+        <td>${Array.isArray(t.question_ids) ? t.question_ids.length : 0}</td>
+        <td>${t.duration_mins} min</td>
+        <td>${t.pass_percent}%</td>
+        <td>${statusBadge(t.status)}</td>
+        <td>${fmtDate(t.created_at ? t.created_at.split('T')[0] : '')}</td>
+        <td><div style="display:flex;gap:.4rem;flex-wrap:wrap">${rowActions(t)}</div></td>
+      </tr>`).join('');
+
+    main.innerHTML = `
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Tests</h1>
+          <p class="view-sub">${escHtml(batch.name)} &middot; ${tests.length} test${tests.length !== 1 ? 's' : ''}</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn--primary" data-action="tests-create">Create Test</button>
+        </div>
+      </div>
+      ${tests.length ? `
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Title</th><th>Questions</th><th>Duration</th><th>Pass %</th><th>Status</th><th>Created</th><th>Actions</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>` : `
+      <div class="empty-state">
+        <div class="empty-state-icon">${_ICONS.bookOpen}</div>
+        <div class="empty-state-title">No tests yet</div>
+        <div class="empty-state-msg">Click "Create Test" to build your first test from the Question Bank.</div>
+      </div>`}
+      <div class="slideout-overlay" id="acad-overlay"></div>
+      <div class="slideout-panel" id="acad-panel"></div>`;
+  }
+
+  function createTestPanel(uploadBatches, batchId, batchStudents = []) {
+    const hasQuestions = uploadBatches.length > 0;
+
+    const batchOptions = hasQuestions
+      ? uploadBatches.map(([ubid, g], idx) => {
+          const date = fmtDate(g.created_at ? g.created_at.split('T')[0] : '');
+          return `<option value="${escHtml(ubid)}">Upload ${uploadBatches.length - idx} — ${date} (${g.count} questions)</option>`;
+        }).join('')
+      : `<option value="" disabled>No questions uploaded yet</option>`;
+
+    const studentItems = batchStudents.map(s => `
+      <label class="ct-student-item">
+        <input type="checkbox" name="ct-student" value="${escHtml(s.id)}">
+        <span>${escHtml(s.name)}</span>
+      </label>`).join('');
+
+    return `
+      <div class="slideout-header">
+        <button class="slideout-back-btn" data-action="tests-cancel">←</button>
+        <span class="slideout-title">Create New Test</span>
+      </div>
+      <div class="slideout-body">
+        <div class="form-group" style="margin-bottom:1rem">
+          <label class="form-label">Test Title</label>
+          <input id="ct-title" type="text" class="form-input" placeholder="e.g. Week 1 Test" maxlength="100">
+        </div>
+        <div class="form-grid form-grid--2" style="margin-bottom:1rem">
+          <div class="form-group">
+            <label class="form-label">Duration (minutes)</label>
+            <input id="ct-duration" type="number" class="form-input" placeholder="60" min="1" max="300">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pass Mark %</label>
+            <input id="ct-pass" type="number" class="form-input" value="50" min="1" max="100">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label class="form-label">Select Question Batch</label>
+          <select id="ct-batch-select" class="form-input" ${!hasQuestions ? 'disabled' : ''}>
+            <option value="">— Choose a batch —</option>
+            ${batchOptions}
+          </select>
+          <p id="ct-q-count" style="font-size:.78rem;color:var(--text3);margin-top:.35rem"></p>
+        </div>
+        <div class="ct-student-section-label">Students (required)</div>
+        <p class="ct-student-help">Only selected students will be able to see and take this test.</p>
+        ${batchStudents.length ? `
+        <div class="ct-student-list" id="ct-student-list">
+          <label class="ct-student-item ct-student-select-all">
+            <input type="checkbox" id="ct-select-all">
+            <strong>Select All (${batchStudents.length})</strong>
+          </label>
+          ${studentItems}
+        </div>` : `<p style="color:var(--text3);font-size:.84rem">No students in this batch yet. Add students via Manage Batch.</p>`}
+        ${!hasQuestions ? `<p style="color:var(--bad);font-size:.84rem;margin:.75rem 0 0">Upload questions to the Question Bank before creating a test.</p>` : ''}
+        <button class="btn btn--primary" style="width:100%;margin-top:1.25rem" data-action="tests-save"
+          data-bid="${escHtml(batchId)}" ${!hasQuestions ? 'disabled' : ''}>
+          Save as Draft
+        </button>
+      </div>`;
+  }
+
+  // ─── Phase 4: Trainer test results slide-over ────────────────────────────
+
+  // allAttempts = array of all statuses (submitted, in_progress, expired)
+  // studentMap  = { studentId: name } from localStorage batch
+  // batchStudents = full student array — filtered by allowlist inside
+  function testResultsPanel(test, allAttempts, studentMap, batchStudents = []) {
+    const now       = new Date();
+    const submitted = allAttempts.filter(a => a.status === 'submitted');
+    const active    = allAttempts.filter(a => a.status === 'in_progress' && new Date(a.deadline) > now);
+    const expired   = allAttempts.filter(a => a.status === 'in_progress' && new Date(a.deadline) <= now);
+    const attemptedIds = new Set(allAttempts.map(a => a.student_id));
+    // P5: Not Started = students on the allowlist who haven't attempted yet.
+    // If allowlist is empty (old test pre-migration), fall back to full batch.
+    const allowedIds = new Set(test.allowed_student_ids || []);
+    const targetStudents = allowedIds.size > 0
+      ? batchStudents.filter(s => allowedIds.has(s.id))
+      : batchStudents;
+    const notStarted = targetStudents.filter(s => !attemptedIds.has(s.id));
+
+    const passCount = submitted.filter(a => a.passed).length;
+    const avgPct    = submitted.length
+      ? (submitted.reduce((s, a) => s + (a.percentage || 0), 0) / submitted.length).toFixed(1)
+      : '—';
+
+    // Safe-to-close banner inside panel
+    const safeCloseBanner = (test.status === 'live' && active.length === 0 && submitted.length > 0)
+      ? `<div class="tr-safe-banner">✓ No students mid-test — safe to close this test.</div>`
+      : '';
+
+    // Submitted table rows
+    const submittedRows = submitted.length
+      ? submitted.map(a => {
+          const name  = escHtml(studentMap[a.student_id] || a.student_id);
+          const pctCls = a.passed ? 'pi--good' : 'pi--bad';
+          const badge  = a.passed
+            ? `<span class="tm-badge tm-badge--live">Pass</span>`
+            : `<span class="tm-badge tm-badge--closed">Fail</span>`;
+          const sub = a.submitted_at ? fmtDate(a.submitted_at.split('T')[0]) : '—';
+          return `<tr>
+            <td>${name}</td>
+            <td>${a.score}/${a.total}</td>
+            <td><span class="pi-value ${pctCls}">${(a.percentage || 0).toFixed(1)}%</span></td>
+            <td>${badge}</td>
+            <td style="color:var(--text3);font-size:.82rem">${sub}</td>
+          </tr>`;
+        }).join('')
+      : `<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:1.5rem">No submissions yet</td></tr>`;
+
+    // In-progress list
+    const activeSection = active.length ? `
+      <div class="tr-section-label tr-section-label--active">⏳ In Progress (${active.length})</div>
+      <div class="tr-pill-list">
+        ${active.map(a => `<span class="tr-pill tr-pill--active">${escHtml(studentMap[a.student_id] || a.student_id)}</span>`).join('')}
+      </div>` : '';
+
+    // Expired list
+    const expiredSection = expired.length ? `
+      <div class="tr-section-label tr-section-label--expired">⌛ Time Expired (${expired.length})</div>
+      <div class="tr-pill-list">
+        ${expired.map(a => `<span class="tr-pill tr-pill--expired">${escHtml(studentMap[a.student_id] || a.student_id)}</span>`).join('')}
+      </div>` : '';
+
+    // Not started list
+    const notStartedSection = notStarted.length ? `
+      <div class="tr-section-label">⭕ Not Started (${notStarted.length})</div>
+      <div class="tr-pill-list">
+        ${notStarted.map(s => `<span class="tr-pill">${escHtml(s.name)}</span>`).join('')}
+      </div>` : '';
+
+    const allowedCount = (test.allowed_student_ids || []).length;
+    return `
+      <div class="slideout-header">
+        <button class="slideout-back-btn" data-action="tests-cancel">←</button>
+        <span class="slideout-title">Results: ${escHtml(test.title)}</span>
+        <button class="btn btn--sm btn--outline" data-action="tests-manage-students" data-tid="${test.id}" data-from="results"
+          style="flex-shrink:0" title="Edit which students can take this test">
+          ${_ICONS.users}${allowedCount ? ` ${allowedCount}` : ' No students'}
+        </button>
+      </div>
+      <div class="slideout-body">
+        ${safeCloseBanner}
+        <div class="tr-summary">
+          <div class="tr-stat">
+            <span class="tr-stat-num">${submitted.length}</span>
+            <span class="tr-stat-lbl">Submitted</span>
+          </div>
+          <div class="tr-stat">
+            <span class="tr-stat-num">${passCount}</span>
+            <span class="tr-stat-lbl">Passed</span>
+          </div>
+          <div class="tr-stat">
+            <span class="tr-stat-num">${active.length}</span>
+            <span class="tr-stat-lbl">In Progress</span>
+          </div>
+          <div class="tr-stat">
+            <span class="tr-stat-num">${notStarted.length}</span>
+            <span class="tr-stat-lbl">Not Started</span>
+          </div>
+        </div>
+        ${activeSection}${expiredSection}${notStartedSection}
+        <div class="tr-section-label">✅ Submitted (${submitted.length})${avgPct !== '—' ? ` · Avg ${avgPct}%` : ''}</div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th>Student</th><th>Score</th><th>%</th><th>Result</th><th>Submitted</th>
+            </tr></thead>
+            <tbody>${submittedRows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  /**
+   * manageStudentsPanel — slide-over content for editing a test's allowlist.
+   * backAction: 'tests-results' (back to results panel) | 'acad-close' (close panel)
+   */
+  function manageStudentsPanel(test, batchStudents, backAction = 'acad-close') {
+    const allowed = new Set(test.allowed_student_ids || []);
+    const allChecked = batchStudents.length > 0 && batchStudents.every(s => allowed.has(s.id));
+    const items = batchStudents.map(s => `
+      <label class="ct-student-item">
+        <input type="checkbox" name="ms-student" value="${escHtml(s.id)}" ${allowed.has(s.id) ? 'checked' : ''}>
+        <span>${escHtml(s.name)}</span>
+      </label>`).join('');
+
+    return `
+      <div class="slideout-header">
+        <button class="slideout-back-btn" data-action="${backAction}" data-tid="${test.id}">←</button>
+        <span class="slideout-title">Manage Students</span>
+      </div>
+      <div class="slideout-body">
+        <p class="ct-student-help">Only selected students can see and take <strong>${escHtml(test.title)}</strong>.</p>
+        ${batchStudents.length ? `
+        <div class="ct-student-list" id="ms-student-list">
+          <label class="ct-student-item ct-student-select-all">
+            <input type="checkbox" id="ms-select-all" ${allChecked ? 'checked' : ''}>
+            <strong>Select All (${batchStudents.length})</strong>
+          </label>
+          ${items}
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+          <button class="btn btn--outline" data-action="${backAction}" data-tid="${test.id}" style="flex:1">Cancel</button>
+          <button class="btn btn--primary" data-action="tests-save-students" data-tid="${test.id}" data-from="${backAction}" style="flex:1">Save</button>
+        </div>` : `<p style="color:var(--text3)">No students in this batch. Add students via Manage Batch first.</p>`}
+      </div>`;
+  }
+
+  function renderAcademicsQuestionBank(batch, questions) {
+    const main = document.getElementById('main-content');
+    if (!main) return;
+
+    // Group questions by upload_batch UUID, preserving insertion order
+    const groupMap = new Map();
+    questions.forEach(q => {
+      if (!groupMap.has(q.upload_batch)) {
+        groupMap.set(q.upload_batch, { questions: [], created_at: q.created_at });
+      }
+      groupMap.get(q.upload_batch).questions.push(q);
+    });
+
+    const totalCount = questions.length;
+    const groups = [...groupMap.entries()];
+
+    const groupsHTML = groups.length
+      ? groups.map(([ubid, g], idx) => {
+          const date  = fmtDate(g.created_at ? g.created_at.split('T')[0] : '');
+          const count = g.questions.length;
+          return `
+            <div class="qb-batch-card">
+              <div class="qb-batch-header">
+                <div class="qb-batch-info">
+                  <span class="qb-batch-num">Upload ${groups.length - idx}</span>
+                  <span class="qb-batch-date">${date}</span>
+                  <span class="qb-batch-count">${count} question${count !== 1 ? 's' : ''}</span>
+                </div>
+                <button class="btn btn--sm" style="color:var(--bad);border-color:var(--bad)"
+                  data-action="qb-delete-batch" data-ubid="${escHtml(ubid)}">Remove</button>
+              </div>
+            </div>`;
+        }).join('')
+      : `<div class="empty-state">
+          <div class="empty-state-icon">${_ICONS.bookOpen}</div>
+          <div class="empty-state-title">Question bank is empty</div>
+          <div class="empty-state-msg">Upload an Excel file to add questions to this batch.</div>
+        </div>`;
+
+    main.innerHTML = `
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Question Bank</h1>
+          <p class="view-sub">${escHtml(batch.name)} &middot; ${totalCount} question${totalCount !== 1 ? 's' : ''} total</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn--ghost" data-action="qb-download-sample">Download Sample</button>
+          <button class="btn btn--primary" data-action="qb-upload">Upload Questions</button>
+          <input type="file" id="qb-file-input" accept=".xlsx,.xls,.csv" style="display:none">
+        </div>
+      </div>
+      <div class="qb-format-hint">
+        <strong>Accepted column headers</strong> (flexible — any of these work):<br>
+        <code>Question</code> &nbsp;|&nbsp;
+        <code>Option A</code> or <code>A</code> &nbsp;|&nbsp;
+        <code>Option B</code> or <code>B</code> &nbsp;|&nbsp;
+        <code>Option C</code> or <code>C</code> &nbsp;|&nbsp;
+        <code>Option D</code> or <code>D</code> &nbsp;|&nbsp;
+        <code>Correct Answer</code> or <code>Ans</code> or <code>Answer</code> &nbsp;— value must be A / B / C / D
+      </div>
+      <div id="qb-groups">${groupsHTML}</div>
+      <div class="slideout-overlay" id="acad-overlay"></div>
+      <div class="slideout-panel" id="acad-panel"></div>`;
+  }
+
+  function questionBankPreviewPanel(rows, batchId) {
+    const valid   = rows.filter(r => !r._error);
+    const invalid = rows.filter(r => r._error);
+
+    const previewRows = rows.slice(0, 20).map(r => `
+      <tr ${r._error ? 'class="qb-preview-error"' : ''}>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${escHtml(r.question)}">${escHtml(r.question || '—')}</td>
+        <td>${escHtml(r.optionA || '—')}</td>
+        <td>${escHtml(r.optionB || '—')}</td>
+        <td>${escHtml(r.optionC || '—')}</td>
+        <td>${escHtml(r.optionD || '—')}</td>
+        <td><strong>${escHtml(r.correct || '—')}</strong></td>
+        <td>${r._error
+          ? `<span style="color:var(--bad);font-size:.75rem">${escHtml(r._error)}</span>`
+          : `<span style="color:var(--good)">✓</span>`}</td>
+      </tr>`).join('');
+
+    return `
+      <div class="slideout-header">
+        <button class="slideout-back-btn" data-action="qb-cancel">←</button>
+        <span class="slideout-title">Preview — ${rows.length} row${rows.length !== 1 ? 's' : ''} parsed</span>
+      </div>
+      <div class="slideout-body">
+        ${invalid.length ? `
+          <div class="qb-error-banner">
+            ${invalid.length} row${invalid.length !== 1 ? 's have' : ' has'} errors and will be skipped.
+          </div>` : ''}
+        <p style="font-size:.82rem;color:var(--text3);margin-bottom:.75rem">
+          Showing first 20 of ${rows.length} rows &nbsp;&middot;&nbsp;
+          <strong style="color:var(--good)">${valid.length} valid</strong>
+          ${invalid.length ? `&nbsp;&middot;&nbsp;<strong style="color:var(--bad)">${invalid.length} invalid</strong>` : ''}
+        </p>
+        <div class="table-wrap" style="max-height:52vh;overflow-y:auto">
+          <table class="data-table" style="font-size:.76rem">
+            <thead><tr>
+              <th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th><th></th>
+            </tr></thead>
+            <tbody>${previewRows}</tbody>
+          </table>
+        </div>
+        ${rows.length > 20 ? `<p style="font-size:.76rem;color:var(--text3);margin-top:.4rem">… and ${rows.length - 20} more rows not shown.</p>` : ''}
+        ${valid.length === 0
+          ? `<p style="color:var(--bad);margin-top:1rem;font-size:.85rem">No valid questions found. Fix the file and try again.</p>`
+          : `<button class="btn btn--primary" style="margin-top:1.25rem;width:100%"
+               data-action="qb-save" data-bid="${escHtml(batchId)}">
+               Save ${valid.length} Question${valid.length !== 1 ? 's' : ''} to Bank
+             </button>`}
+      </div>`;
+  }
 
   function renderAcademicsTests(batch) {
     const main = document.getElementById('main-content');
@@ -2651,55 +2984,35 @@ const UI = (() => {
 
   // ─── Manage Batch Screen (Phase 5) ────────────────────────────────────────
 
-  /**
-   * Maps each session in `plan` to a calendar date.
-   * Starts from `startDate`, skips Sundays and holidays.
-   * `sessPerDay` sessions are assigned per working day (default 1).
-   */
+  /** Maps each session to a calendar date (Mon–Sat, skipping Sundays & holidays). */
   function _mapSessionDates(plan, startDate, holidays, sessPerDay) {
     if (!startDate || !plan.length) return plan.map(s => ({ ...s, mappedDate: '' }));
-
     const spd  = Math.max(1, parseInt(sessPerDay) || 1);
     const hSet = new Set((holidays || []).map(h => h.date));
-
-    function toISO(d) {
-      // Use local date to avoid UTC-offset shifting
-      const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
-      return `${y}-${m}-${dd}`;
-    }
-    function isWorking(d) { return d.getDay() !== 0 && !hSet.has(toISO(d)); }
-
-    // Start on or after startDate, first working day
+    function toISO(d) { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+    function isWorking(d) { return d.getDay()!==0 && !hSet.has(toISO(d)); }
     const dayD = new Date(startDate + 'T00:00:00');
-    while (!isWorking(dayD)) dayD.setDate(dayD.getDate() + 1);
-
+    while (!isWorking(dayD)) dayD.setDate(dayD.getDate()+1);
     let slotInDay = 0;
-
     return plan.map(s => {
       if (!s.topic || s.sessionNo < 1) return { ...s, mappedDate: '' };
       const dateStr = toISO(dayD);
       slotInDay++;
-      if (slotInDay >= spd) {
-        slotInDay = 0;
-        dayD.setDate(dayD.getDate() + 1);
-        while (!isWorking(dayD)) dayD.setDate(dayD.getDate() + 1);
-      }
+      if (slotInDay >= spd) { slotInDay=0; dayD.setDate(dayD.getDate()+1); while(!isWorking(dayD)) dayD.setDate(dayD.getDate()+1); }
       return { ...s, mappedDate: dateStr };
     });
   }
 
-  /** Renders the Session Plan tab content for a batch (with date mapping). */
+  /** Renders the Session Plan tab with date mapping. */
   function _renderCoursePlanHTML(batch) {
-    const plan       = batch.coursePlan   || [];
-    const startDate  = batch.startDate    || '';
-    const holidays   = batch.holidays     || [];
+    const plan       = batch.coursePlan    || [];
+    const startDate  = batch.startDate     || '';
+    const holidays   = batch.holidays      || [];
     const sessPerDay = batch.sessionsPerDay || 1;
 
     const uploadZone = `
       <div class="mb-section-bar" style="margin-bottom:1rem;">
-        <span class="mb-count">${plan.length
-          ? `${plan.length} sessions &nbsp;·&nbsp; ${plan.reduce((s,r)=>s+r.durationHrs,0)} total hours`
-          : 'No session plan uploaded yet'}</span>
+        <span class="mb-count">${plan.length ? `${plan.length} sessions &nbsp;·&nbsp; ${plan.reduce((s,r)=>s+r.durationHrs,0)} total hours` : 'No session plan uploaded yet'}</span>
         <label style="cursor:pointer;display:inline-block;">
           <input type="file" id="mb-plan-file" accept=".xlsx,.xls" style="display:none">
           <span class="btn btn-outline btn-sm">📂 ${plan.length ? 'Replace Plan' : 'Upload Plan Excel'}</span>
@@ -2707,101 +3020,66 @@ const UI = (() => {
       </div>
       <div id="mb-plan-status" style="display:none;margin-bottom:1rem;"></div>`;
 
-    if (!plan.length) {
-      return uploadZone + `
-        <div class="empty-state">
-          <div class="empty-state-icon">📋</div>
-          <div class="empty-state-title">No Session Plan</div>
-          <div class="empty-state-msg">Upload a course logsheet Excel to attach a session plan.<br>
-            Expected columns: <b>Subject</b> · <b>Sessions</b> · <b>Topic</b> · <b>Duration (Hrs.)</b>
-          </div>
-        </div>`;
-    }
+    if (!plan.length) return uploadZone + `
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <div class="empty-state-title">No Session Plan</div>
+        <div class="empty-state-msg">Upload a course logsheet Excel.<br>Expected columns: <b>Subject · Sessions · Topic · Duration (Hrs.)</b></div>
+      </div>`;
 
-    // ── Map sessions → dates ───────────────────────────────────────────────
-    const mapped   = _mapSessionDates(plan, startDate, holidays, sessPerDay);
-    const today    = (()=>{ const d=new Date(); const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; })();
-    const firstDt  = mapped.find(r => r.mappedDate)?.mappedDate || '';
-    const lastDt   = [...mapped].reverse().find(r => r.mappedDate)?.mappedDate || '';
-    const totalHrs = plan.reduce((s, r) => s + r.durationHrs, 0);
+    const mapped  = _mapSessionDates(plan, startDate, holidays, sessPerDay);
+    const today   = (()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+    const firstDt = mapped.find(r=>r.mappedDate)?.mappedDate || '';
+    const lastDt  = [...mapped].reverse().find(r=>r.mappedDate)?.mappedDate || '';
+    const totalHrs = plan.reduce((s,r)=>s+r.durationHrs,0);
 
-    // ── Date mapping banner ────────────────────────────────────────────────
     const mappingBanner = startDate ? `
       <div style="padding:14px 18px;background:linear-gradient(135deg,#0c1d3a,#0f2d4a);border:1px solid #1e4580;border-radius:12px;margin-bottom:1.25rem;">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
           <div>
             <div style="font-size:.75rem;color:#93c5fd;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">📅 Session Date Mapping</div>
-            <div style="font-size:.92rem;color:#e2e8f0;font-weight:500;">
-              Session <span style="color:#7dd3fc;font-weight:700;">#1</span>
-              &rarr; <strong>${fmtDate(firstDt)}</strong>
-              &nbsp;&nbsp;
-              Session <span style="color:#7dd3fc;font-weight:700;">#${mapped.filter(r=>r.mappedDate).length}</span>
-              &rarr; <strong>${fmtDate(lastDt)}</strong>
-            </div>
+            <div style="font-size:.92rem;color:#e2e8f0;font-weight:500;">Session <span style="color:#7dd3fc;font-weight:700;">#1</span> &rarr; <strong>${fmtDate(firstDt)}</strong> &nbsp;&nbsp; Session <span style="color:#7dd3fc;font-weight:700;">#${mapped.filter(r=>r.mappedDate).length}</span> &rarr; <strong>${fmtDate(lastDt)}</strong></div>
             <div style="font-size:.75rem;color:#64748b;margin-top:.3rem;">Mon–Sat &nbsp;·&nbsp; Sundays &amp; holidays skipped &nbsp;·&nbsp; ${totalHrs} hrs total</div>
           </div>
           <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
             <label style="font-size:.8rem;color:#94a3b8;white-space:nowrap;">Sessions / day</label>
             <select id="mb-sess-per-day" style="padding:5px 10px;border-radius:7px;border:1px solid #334155;background:#0f172a;color:#f1f5f9;font-size:.85rem;cursor:pointer;">
-              <option value="1"${sessPerDay===1?' selected':''}>1&nbsp; (2 hrs/day)</option>
-              <option value="2"${sessPerDay===2?' selected':''}>2&nbsp; (4 hrs/day)</option>
-              <option value="3"${sessPerDay===3?' selected':''}>3&nbsp; (6 hrs/day)</option>
+              <option value="1"${sessPerDay===1?' selected':''}>1 &nbsp;(2 hrs/day)</option>
+              <option value="2"${sessPerDay===2?' selected':''}>2 &nbsp;(4 hrs/day)</option>
+              <option value="3"${sessPerDay===3?' selected':''}>3 &nbsp;(6 hrs/day)</option>
             </select>
           </div>
         </div>
-      </div>` : `
-      <div style="padding:10px 14px;background:#1c1917;border:1px solid #78350f;border-radius:8px;color:#fbbf24;font-size:.85rem;margin-bottom:1rem;">
-        ⚠️ Set a <strong>Start Date</strong> in <em>Batch Details</em> to enable date mapping.
-      </div>`;
+      </div>` : `<div style="padding:10px 14px;background:#1c1917;border:1px solid #78350f;border-radius:8px;color:#fbbf24;font-size:.85rem;margin-bottom:1rem;">⚠️ Set a <strong>Start Date</strong> in <em>Batch Details</em> to enable date mapping.</div>`;
 
-    // ── Group by subject ───────────────────────────────────────────────────
-    const grouped = [];
-    let cur = null;
-    mapped.forEach(row => {
-      if (!cur || cur.subject !== row.subject) {
-        cur = { subject: row.subject, rows: [] };
-        grouped.push(cur);
-      }
-      cur.rows.push(row);
-    });
+    const grouped = []; let cur = null;
+    mapped.forEach(row => { if(!cur||cur.subject!==row.subject){cur={subject:row.subject,rows:[]};grouped.push(cur);}cur.rows.push(row); });
 
     const subjectCards = grouped.map(g => {
-      const subjHrs = g.rows.reduce((s, r) => s + r.durationHrs, 0);
-      const gFirst  = g.rows.find(r => r.mappedDate)?.mappedDate || '';
-      const gLast   = [...g.rows].reverse().find(r => r.mappedDate)?.mappedDate || '';
-
+      const subjHrs=g.rows.reduce((s,r)=>s+r.durationHrs,0);
+      const gFirst=g.rows.find(r=>r.mappedDate)?.mappedDate||'';
+      const gLast=[...g.rows].reverse().find(r=>r.mappedDate)?.mappedDate||'';
       const rowsHTML = g.rows.map(r => {
-        const isPast  = r.mappedDate && r.mappedDate < today;
-        const isToday = r.mappedDate === today;
-        const dateClr = isToday ? '#34d399' : isPast ? '#475569' : '#7dd3fc';
-        const topicClr = isPast ? '#475569' : 'var(--text2,#cbd5e1)';
-        const strike   = isPast ? 'text-decoration:line-through;' : '';
-
-        return `
-          <div style="display:flex;align-items:center;gap:.6rem;padding:6px 0;border-bottom:1px solid #1e293b;">
-            <span style="flex-shrink:0;min-width:1.8rem;font-size:.72rem;color:#475569;font-family:monospace;text-align:right;">#${r.sessionNo}</span>
-            <span style="flex-shrink:0;min-width:6rem;font-size:.72rem;font-family:monospace;color:${dateClr};">${r.mappedDate ? fmtDate(r.mappedDate) : ''}</span>
-            ${isToday ? `<span style="flex-shrink:0;font-size:.62rem;font-weight:700;background:#064e3b;color:#34d399;padding:1px 5px;border-radius:4px;letter-spacing:.04em;">TODAY</span>` : ''}
-            <span style="flex:1;font-size:.84rem;color:${topicClr};${strike}">${escHtml(r.topic)}</span>
-            <span style="flex-shrink:0;font-size:.73rem;color:#475569;white-space:nowrap;">${r.durationHrs}h</span>
-          </div>`;
+        const isPast=r.mappedDate&&r.mappedDate<today; const isToday=r.mappedDate===today;
+        const dateClr=isToday?'#34d399':isPast?'#475569':'#7dd3fc'; const topicClr=isPast?'#475569':'var(--text2,#cbd5e1)'; const strike=isPast?'text-decoration:line-through;':'';
+        return `<div style="display:flex;align-items:center;gap:.6rem;padding:6px 0;border-bottom:1px solid #1e293b;">
+          <span style="flex-shrink:0;min-width:1.8rem;font-size:.72rem;color:#475569;font-family:monospace;text-align:right;">#${r.sessionNo}</span>
+          <span style="flex-shrink:0;min-width:6rem;font-size:.72rem;font-family:monospace;color:${dateClr};">${r.mappedDate?fmtDate(r.mappedDate):''}</span>
+          ${isToday?`<span style="flex-shrink:0;font-size:.62rem;font-weight:700;background:#064e3b;color:#34d399;padding:1px 5px;border-radius:4px;">TODAY</span>`:''}
+          <span style="flex:1;font-size:.84rem;color:${topicClr};${strike}">${escHtml(r.topic)}</span>
+          <span style="flex-shrink:0;font-size:.73rem;color:#475569;white-space:nowrap;">${r.durationHrs}h</span>
+        </div>`;
       }).join('');
-
-      const dateRangeLabel = gFirst
-        ? `<div style="font-size:.72rem;color:#7dd3fc;white-space:nowrap;">${fmtDate(gFirst)} – ${fmtDate(gLast)}</div>`
-        : '';
-
-      return `
-        <details class="plan-subject-block" style="border:1px solid var(--border,#334155);border-radius:10px;margin-bottom:.75rem;overflow:hidden;">
-          <summary style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;background:var(--surface2,#1e293b);user-select:none;list-style:none;">
-            <span style="font-size:.9rem;font-weight:600;color:var(--text1,#f1f5f9);">${escHtml(g.subject)}</span>
-            <div style="text-align:right;margin-left:1rem;flex-shrink:0;">
-              <div style="font-size:.78rem;color:var(--text3,#94a3b8);">${g.rows.length} sessions &nbsp;·&nbsp; ${subjHrs} hrs</div>
-              ${dateRangeLabel}
-            </div>
-          </summary>
-          <div style="padding:0 16px 8px;background:var(--surface,#0f172a);">${rowsHTML}</div>
-        </details>`;
+      return `<details style="border:1px solid var(--border,#334155);border-radius:10px;margin-bottom:.75rem;overflow:hidden;">
+        <summary style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;background:var(--surface2,#1e293b);user-select:none;list-style:none;">
+          <span style="font-size:.9rem;font-weight:600;color:var(--text1,#f1f5f9);">${escHtml(g.subject)}</span>
+          <div style="text-align:right;margin-left:1rem;flex-shrink:0;">
+            <div style="font-size:.78rem;color:var(--text3,#94a3b8);">${g.rows.length} sessions &nbsp;·&nbsp; ${subjHrs} hrs</div>
+            ${gFirst?`<div style="font-size:.72rem;color:#7dd3fc;">${fmtDate(gFirst)} – ${fmtDate(gLast)}</div>`:''}
+          </div>
+        </summary>
+        <div style="padding:0 16px 8px;background:var(--surface,#0f172a);">${rowsHTML}</div>
+      </details>`;
     }).join('');
 
     return uploadZone + mappingBanner + `<div id="course-plan-body">${subjectCards}</div>`;
@@ -2965,11 +3243,11 @@ const UI = (() => {
     const sessionPlanHTML = _renderCoursePlanHTML(batch);
 
     const tabs = [
-      { id: 'details',      label: 'Batch Details' },
-      { id: 'students',     label: 'Students'       },
+      { id: 'details',      label: 'Batch Details'  },
+      { id: 'students',     label: 'Students'        },
       { id: 'session-plan', label: '📋 Session Plan' },
-      { id: 'holidays',     label: 'Holidays'       },
-      { id: 'reports',      label: 'Reports'        },
+      { id: 'holidays',     label: 'Holidays'        },
+      { id: 'reports',      label: 'Reports'         },
     ];
 
     const tabsHTML = tabs.map(t =>
@@ -5344,6 +5622,8 @@ const UI = (() => {
     renderSidebar, renderNavSidebar, toggleSidebar, setNavSection, setNavMode, toggleNavGroup,
     openNavFlyout, closeNavFlyout,
     renderManageBatch, renderSettings,
+    renderAcademicsTestsMgmt, createTestPanel, testResultsPanel, manageStudentsPanel,
+    renderAcademicsQuestionBank, questionBankPreviewPanel,
     renderAcademicsTests, renderAcademicsExams, academicsTestSlideOver,
     renderMockManual, renderMockAI, renderMockHistory, mockManualSlideOver, mockAISlideOver,
     renderRemarksCallsScreen, renderRemarksNotesScreen, remarksCallsSlideOver, remarksNotesSlideOver,
@@ -5379,6 +5659,8 @@ const UI = (() => {
     renderStudentMockHistory, renderStudentPlacement,
     renderStudentSettings,
     showCreateStudentLoginModal,
+    renderStudentMCQTests, renderStudentTestTaking, renderStudentTestResult,
+    renderStudentAnswerReview,
     // User management
     showDangerConfirm, showResetStudentPasswordModal,
     // Content topbar + profile drawer
