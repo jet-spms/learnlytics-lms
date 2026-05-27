@@ -3713,12 +3713,21 @@ const App = (() => {
           status:    document.getElementById('f-batch-status').value
         }
       );
+
+      // Import any students pre-loaded from the Excel picker
+      const pendingStudents = window._pendingBatchStudents || [];
+      pendingStudents.forEach(s => Storage.createStudent(batch.id, s));
+      window._pendingBatchStudents = null;
+
       modal.remove();
       UI.renderSidebar(Storage.getMyBatches(), batch.id);
       selectBatch(batch.id);
-      UI.showToast(`Batch "${name}" created!`, 'success');
+      const stuSuffix = pendingStudents.length > 0
+        ? ` with ${pendingStudents.length} student${pendingStudents.length !== 1 ? 's' : ''}!`
+        : '!';
+      UI.showToast(`Batch "${name}" created${stuSuffix}`, 'success');
     });
-    bindModalClose(modal);
+    bindModalClose(modal, () => { window._pendingBatchStudents = null; });
   }
 
   function openEditBatchModal(batchId) {

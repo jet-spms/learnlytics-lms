@@ -1550,6 +1550,25 @@ const UI = (() => {
           <button class="modal-close" id="modal-close">${_ICONS.close}</button>
         </div>
         <div class="modal-body">
+          ${!existing ? `
+          <div class="form-group" id="batch-xl-group">
+            <label>Import from Excel <span class="form-hint">(optional — auto-fills batch &amp; students)</span></label>
+            <label id="batch-xl-drop" style="display:flex;align-items:center;gap:.75rem;padding:14px 16px;border:2px dashed var(--border,#334155);border-radius:10px;cursor:pointer;transition:border-color .2s,background .2s;background:var(--surface2,#1e293b);">
+              <input type="file" id="batch-xl-file" accept=".xlsx,.xls" style="display:none">
+              <span style="font-size:1.4rem;flex-shrink:0;">📂</span>
+              <div style="min-width:0;">
+                <div id="batch-xl-label" style="color:var(--text3,#94a3b8);font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Click to choose or drag &amp; drop an Excel file (.xlsx)</div>
+                <div style="font-size:.75rem;color:var(--text3,#94a3b8);margin-top:2px;">Columns: <b>Batch No</b> · <b>Enrollment Number</b> · <b>Full Name</b> · <b>E-mail ID</b> · <b>Phone</b></div>
+              </div>
+            </label>
+            <div id="batch-xl-preview" style="display:none;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin:0 0 1rem;color:var(--text3,#94a3b8);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;">
+            <div style="flex:1;height:1px;background:var(--border,#334155)"></div>
+            <span>or fill in manually</span>
+            <div style="flex:1;height:1px;background:var(--border,#334155)"></div>
+          </div>
+          ` : ''}
           <div class="form-group">
             <label>Batch Name *</label>
             <input type="text" id="f-batch-name" class="form-input"
@@ -1595,6 +1614,85 @@ const UI = (() => {
         </div>
       </div>`;
     document.body.appendChild(modal);
+
+    // ── Excel import wiring (new batch only) ──────────────────────────────
+    if (!existing) {
+      window._pendingBatchStudents = null; // clear any stale data from previous open
+
+      const xlFile = document.getElementById('batch-xl-file');
+      const xlDrop = document.getElementById('batch-xl-drop');
+
+      function _parseBatchXL(file) {
+        if (!file) return;
+        if (typeof XLSX === 'undefined') {
+          const prev = document.getElementById('batch-xl-preview');
+          prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;';
+          prev.innerHTML = '❌ XLSX library not loaded. Please refresh the page.';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try {
+            const wb   = XLSX.read(ev.target.result, { type: 'array' });
+            const ws   = wb.Sheets[wb.SheetNames[0]];
+            const raw  = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            const strip = s => s.toString().replace(/<[^>]*>/g, '').trim();
+
+            const batchNo = strip(
+              raw[0]?.['Batch No'] || raw[0]?.['Batch Number'] ||
+              raw[0]?.['BatchNo']  || raw[0]?.['BATCH NO']     || ''
+            );
+            const students = raw.map(r => ({
+              name:      strip(r['Full Name']        || r['Name']    || r['name']    || r['NAME']   || r['FULL NAME'] || ''),
+              email:     strip(r['E-mail ID']         || r['Email ID']|| r['Email']  || r['email']  || r['EMAIL']    || r['E-Mail'] || ''),
+              phone:     strip(r['Phone']             || r['phone']  || r['PHONE']   || r['Mobile'] || r['mobile']   || r['Contact'] || ''),
+              studentId: strip(r['Enrollment Number'] || r['Enrollment No'] || r['Student ID'] || r['ID'] || r['Enroll No'] || ''),
+            })).filter(r => r.name);
+
+            if (batchNo) {
+              const nameEl = document.getElementById('f-batch-name');
+              const codeEl = document.getElementById('f-batch-code');
+              if (nameEl && !nameEl.value) nameEl.value = batchNo;
+              if (codeEl && !codeEl.value) codeEl.value = batchNo;
+            }
+
+            window._pendingBatchStudents = students.length > 0 ? students : null;
+
+            const prev = document.getElementById('batch-xl-preview');
+            const labelEl = document.getElementById('batch-xl-label');
+            if (labelEl) labelEl.textContent = file.name;
+
+            if (students.length > 0) {
+              prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#052e16;border:1px solid #166534;border-radius:8px;color:#86efac;font-size:.85rem;line-height:1.5;';
+              prev.innerHTML =
+                `✅ <strong>${file.name}</strong> — ` +
+                `<strong>${students.length} student${students.length !== 1 ? 's' : ''}</strong> ready to import` +
+                (batchNo ? ` · Batch detected: <strong>${batchNo}</strong>` : '');
+            } else {
+              prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#451a03;border:1px solid #92400e;border-radius:8px;color:#fcd34d;font-size:.85rem;line-height:1.5;';
+              prev.innerHTML = '⚠️ No students found. Expected columns: <b>Full Name</b> · <b>Enrollment Number</b> · <b>E-mail ID</b> · <b>Phone</b>';
+            }
+          } catch {
+            const prev = document.getElementById('batch-xl-preview');
+            prev.style.cssText = 'display:block;margin-top:.5rem;padding:10px 14px;background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;color:#fca5a5;font-size:.85rem;';
+            prev.innerHTML = '❌ Could not read the file. Make sure it is a valid .xlsx file.';
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      xlFile?.addEventListener('change', e => _parseBatchXL(e.target.files[0]));
+      xlDrop?.addEventListener('dragover',  e => { e.preventDefault(); xlDrop.style.borderColor = 'var(--accent,#0277fa)'; xlDrop.style.background = 'var(--surface,#0f172a)'; });
+      xlDrop?.addEventListener('dragleave', () => { xlDrop.style.borderColor = ''; xlDrop.style.background = ''; });
+      xlDrop?.addEventListener('drop', e => {
+        e.preventDefault();
+        xlDrop.style.borderColor = '';
+        xlDrop.style.background  = '';
+        _parseBatchXL(e.dataTransfer.files[0]);
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     document.getElementById('f-batch-name').focus();
     return modal;
   }
