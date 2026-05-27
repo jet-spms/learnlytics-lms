@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import Batch — SPMS Data Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 40px; max-width: 700px; width: 100%; margin: 24px; }
+    h1 { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+    .subtitle { color: #94a3b8; font-size: .9rem; margin-bottom: 28px; }
+    .batch-box { background: #0f172a; border: 1px solid #475569; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; }
+    .batch-name { font-size: 1.1rem; font-weight: 700; color: #38bdf8; letter-spacing: .04em; }
+    .batch-meta { color: #94a3b8; font-size: .85rem; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size: .88rem; }
+    th { text-align: left; padding: 8px 12px; color: #94a3b8; font-weight: 600; border-bottom: 1px solid #334155; }
+    td { padding: 8px 12px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+    td.enroll { font-family: monospace; color: #fbbf24; font-size: .82rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1a2744; }
+    .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all .2s; }
+    .btn-import { background: #0277fa; color: #fff; }
+    .btn-import:hover { background: #0369d1; }
+    .btn-import:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    .btn-go { background: #059669; color: #fff; margin-top: 12px; display: none; }
+    .btn-go:hover { background: #047857; }
+    .status { border-radius: 10px; padding: 14px 18px; margin-top: 20px; font-size: .9rem; display: none; }
+    .status.success { background: #064e3b; border: 1px solid #065f46; color: #6ee7b7; }
+    .status.error   { background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5; }
+    .status.warn    { background: #451a03; border: 1px solid #92400e; color: #fcd34d; }
+    .tag { display: inline-block; background: #164e63; color: #7dd3fc; font-size: .75rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; margin-left: 8px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>📥 SPMS Batch Import Tool</h1>
+  <p class="subtitle">Adds the batch and all students directly into your SPMS localStorage</p>
+
+  <div class="batch-box">
+    <div class="batch-name">BATCH-2526-DD-5022 <span class="tag">11 students</span></div>
+    <div class="batch-meta">Jetking Infotrain Ltd — Academic Year 2025–26</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Enrollment Number</th>
+        <th>Full Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+      </tr>
+    </thead>
+    <tbody id="preview-rows"></tbody>
+  </table>
+
+  <button class="btn btn-import" id="btn-import" onclick="doImport()">⚡ Import Batch &amp; All Students</button>
+  <button class="btn btn-go" id="btn-go" onclick="window.location.href='auth.html'">🚀 Go to SPMS Dashboard</button>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const BATCH_NAME = 'BATCH-2526-DD-5022';
+const BATCH_CODE = 'BATCH-2526-DD-5022';
+
+const STUDENTS = [
+  { name: 'Monika Jagadale',   email: 'mj948752@gmail.com',           phone: '8419916092', studentId: 'JK-ENR-DD-845' },
+  { name: 'Om Jaiswal',        email: 'omashokjaiswal12@gmail.com',    phone: '7045114498', studentId: 'JK-ENR-DD-889' },
+  { name: 'Tushar Tare',       email: 'tushar2442005@gmail.com',       phone: '8097839726', studentId: 'JK-ENR-DD-847' },
+  { name: 'Shantanu Sutar',    email: 'shantanusutar1564@gmail.com',   phone: '7798013797', studentId: 'JK-ENR-DD-901' },
+  { name: 'Somnathan Acharya', email: 'somnathana@gmail.com',          phone: '9004163811', studentId: 'JK-ENR-DD-909' },
+  { name: 'Sameer Khan',       email: 'sameerk200520@gmail.com',       phone: '9136250785', studentId: 'JK-ENR-DD-914' },
+  { name: 'Isu Pal',           email: 'ishupal83@gmail.com',           phone: '9326615870', studentId: 'JK-ENR-DD-919' },
+  { name: 'Malhar Kadam',      email: 'kadammalhar6@gmail.com',        phone: '8424886496', studentId: 'JK-ENR-DD-924' },
+  { name: 'Saad Kherani',      email: 'saadkherani@gmail.com',         phone: '8779818152', studentId: 'JK-ENR-DD-925' },
+  { name: 'Aayan Kamble',      email: 'kambleaayan16@gmail.com',       phone: '9082397357', studentId: 'JK-ENR-DD-929' },
+  { name: 'Aishwarya Jadhav',  email: 'aishwaryamj1998@gmail.com',     phone: '7710943397', studentId: 'JK-ENR-DD-934' },
+];
+
+// Populate preview table
+const tbody = document.getElementById('preview-rows');
+STUDENTS.forEach((s, i) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${i + 1}</td><td class="enroll">${s.studentId}</td><td>${s.name}</td><td>${s.email}</td><td>${s.phone}</td>`;
+  tbody.appendChild(tr);
+});
+
+function rand4() { return Math.random().toString(36).slice(2, 6); }
+function uid(prefix) { return prefix + '_' + Date.now() + '_' + rand4(); }
+
+function makeStudent(batchId, batchName, s) {
+  const now = new Date().toISOString();
+  return {
+    id:                  uid('s'),
+    studentId:           s.studentId,
+    name:                s.name,
+    email:               s.email,
+    phone:               s.phone,
+    createdAt:           now,
+    sessions:            [],
+    weeklyTests:         [],
+    presentationMetrics: [],
+    presentationDates:   [],
+    exams:               [],
+    punctuality:         [],
+    notes:               [],
+    mockInterviews:      [],
+    callLogs:            [],
+    presScheduleInfo:    {},
+    enrollmentHistory:   [{ batchId, date: now.split('T')[0], action: 'enrolled' }],
+    interviewScore:      null,
+    aiMockHistory:       [],
+    rejoinOn:            '',
+    rejoinReason:        ''
+  };
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.className = 'status ' + type;
+  el.innerHTML = msg;
+  el.style.display = 'block';
+}
+
+function doImport() {
+  const btn = document.getElementById('btn-import');
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+
+  try {
+    // Read existing SPMS data
+    let data;
+    try { data = JSON.parse(localStorage.getItem('spms_data') || '{"batches":[]}'); }
+    catch { data = { batches: [] }; }
+    if (!data.batches) data.batches = [];
+
+    // Check if batch already exists (not deleted)
+    const existing = data.batches.find(b => b.name === BATCH_NAME && !b.deleted);
+    if (existing) {
+      showStatus(`⚠️ Batch <strong>${BATCH_NAME}</strong> already exists in your SPMS with ${existing.students ? existing.students.length : 0} students. No changes made.`, 'warn');
+      btn.disabled = false;
+      btn.textContent = '⚡ Import Batch & All Students';
+      return;
+    }
+
+    // Get current user id (for ownerId)
+    const ownerId = sessionStorage.getItem('spms_current_user') || '';
+
+    const now     = new Date().toISOString();
+    const batchId = uid('b');
+
+    const batch = {
+      id:                  batchId,
+      name:                BATCH_NAME,
+      description:         'Jetking Infotrain Ltd — Academic Year 2025–26',
+      ownerId:             ownerId,
+      createdAt:           now,
+      updatedAt:           now,
+      holidays:            [],
+      batchCode:           BATCH_CODE,
+      startDate:           '',
+      endDate:             '',
+      capacity:            0,
+      status:              'active',
+      archived:            false,
+      deleted:             false,
+      deletedAt:           '',
+      primaryInstructorId: ownerId,
+      assignedTrainers:    [],
+      instructors:         [],
+      substitutions:       [],
+      timetable:           [],
+      calendarEvents:      [],
+      _calMigrated:        false,
+      meetingLinks:        {},
+      students:            STUDENTS.map(s => makeStudent(batchId, BATCH_NAME, s))
+    };
+
+    data.batches.push(batch);
+    localStorage.setItem('spms_data', JSON.stringify(data));
+
+    showStatus(
+      `✅ <strong>Batch created successfully!</strong><br>` +
+      `<span style="color:#6ee7b7">Batch:</span> ${BATCH_NAME}<br>` +
+      `<span style="color:#6ee7b7">Students added:</span> ${STUDENTS.length}<br>` +
+      `<span style="color:#6ee7b7">Batch ID:</span> <code style="font-size:.8rem">${batchId}</code>`,
+      'success'
+    );
+
+    document.getElementById('btn-go').style.display = 'block';
+    btn.textContent = '✅ Import Complete';
+
+  } catch (err) {
+    showStatus('❌ Error: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '⚡ Import Batch & All Students';
+  }
+}
+</script>
+</body>
+</html>
