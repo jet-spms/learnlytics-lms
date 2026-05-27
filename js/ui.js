@@ -1668,6 +1668,7 @@ const UI = (() => {
     const tableRows = rows.map((r, i) => `
       <tr>
         <td style="padding:.4rem .6rem">${i + 1}</td>
+        <td style="padding:.4rem .6rem;font-family:monospace;font-size:.82rem;color:#fbbf24">${r.studentId ? escHtml(r.studentId) : '<span style="color:#64748b">auto</span>'}</td>
         <td style="padding:.4rem .6rem">${r.name ? escHtml(r.name) : '<span style="color:#f87171">—</span>'}</td>
         <td style="padding:.4rem .6rem">${r.email ? escHtml(r.email) : '—'}</td>
         <td style="padding:.4rem .6rem">${r.phone ? escHtml(r.phone) : '—'}</td>
@@ -1685,10 +1686,13 @@ const UI = (() => {
               Your Excel sheet must have these columns in the <strong>first row</strong>:
             </p>
             <div style="background:#0F172A;border-radius:8px;padding:.75rem 1rem;font-family:monospace;font-size:.85rem;margin-bottom:1rem;color:#fbbf24">
-              Name &nbsp;|&nbsp; Email &nbsp;|&nbsp; Phone
+              Enrollment Number &nbsp;|&nbsp; Full Name &nbsp;|&nbsp; E-mail ID &nbsp;|&nbsp; Phone
             </div>
+            <p style="color:#64748b;font-size:.82rem;margin-bottom:.5rem">
+              Also accepts: <span style="color:#94a3b8">Name, Email, Phone</span> — Enrollment Number and E-mail ID are optional.
+            </p>
             <p style="color:#64748b;font-size:.82rem;margin-bottom:1.25rem">
-              Email and Phone are optional. Each row after the header becomes one student.
+              ✅ <strong style="color:#f1f5f9">Jetking format supported directly</strong> — upload your "Students Details.xlsx" as-is.
             </p>
             <a id="bulk-download-template" href="#" style="color:#0277FA;font-size:.85rem;text-decoration:underline">
               Download sample template
@@ -1702,6 +1706,7 @@ const UI = (() => {
                 <thead>
                   <tr style="background:rgba(255,255,255,.06);text-align:left">
                     <th style="padding:.5rem .6rem;color:#94a3b8">#</th>
+                    <th style="padding:.5rem .6rem;color:#94a3b8">Enrollment / ID</th>
                     <th style="padding:.5rem .6rem;color:#94a3b8">Name</th>
                     <th style="padding:.5rem .6rem;color:#94a3b8">Email</th>
                     <th style="padding:.5rem .6rem;color:#94a3b8">Phone</th>

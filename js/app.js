@@ -3792,13 +3792,14 @@ const App = (() => {
             const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
             const stripTags = s => s.replace(/<[^>]*>/g, '').trim();
             const parsed = raw.map(r => ({
-              name:  stripTags((r['Name']  || r['name']  || r['NAME']  || '').toString()),
-              email: stripTags((r['Email'] || r['email'] || r['EMAIL'] || '').toString()),
-              phone: stripTags((r['Phone'] || r['phone'] || r['PHONE'] || '').toString()),
+              name:      stripTags((r['Full Name'] || r['Name']  || r['name']  || r['NAME']  || r['FULL NAME'] || '').toString()),
+              email:     stripTags((r['E-mail ID'] || r['Email ID'] || r['Email'] || r['email'] || r['EMAIL'] || r['E-Mail'] || r['E-MAIL ID'] || '').toString()),
+              phone:     stripTags((r['Phone'] || r['phone'] || r['PHONE'] || r['Mobile'] || r['mobile'] || r['Contact'] || '').toString()),
+              studentId: stripTags((r['Enrollment Number'] || r['Enrollment No'] || r['Student ID'] || r['ID'] || r['Enroll No'] || r['EnrollmentNumber'] || r['enrollment_number'] || '').toString()),
             })).filter(r => r.name);
 
             if (parsed.length === 0) {
-              UI.showToast('No valid rows found. Make sure the sheet has a "Name" column.', 'error');
+              UI.showToast('No valid rows found. Make sure the sheet has a "Name" or "Full Name" column.', 'error');
               openBulkImportModal(batchId);
               return;
             }
