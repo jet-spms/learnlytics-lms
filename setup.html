@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPMS — First-Time Setup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 40px; max-width: 480px; width: 100%; margin: 24px; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .logo-badge { background: #0277fa; color: #fff; font-weight: 800; font-size: 1.1rem; border-radius: 8px; padding: 4px 10px; letter-spacing: .04em; }
+    h1 { font-size: 1.4rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+    .subtitle { color: #94a3b8; font-size: .88rem; margin-bottom: 28px; }
+    .badge-admin { display: inline-block; background: #1e3a5f; color: #60a5fa; font-size: .75rem; font-weight: 700; padding: 2px 10px; border-radius: 20px; margin-left: 6px; letter-spacing: .04em; }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-size: .8rem; font-weight: 600; color: #94a3b8; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+    input { width: 100%; background: #0f172a; border: 1px solid #475569; border-radius: 8px; padding: 10px 14px; color: #f1f5f9; font-size: .95rem; outline: none; transition: border-color .2s; }
+    input:focus { border-color: #0277fa; }
+    input[readonly] { color: #64748b; cursor: not-allowed; }
+    .hint { font-size: .78rem; color: #64748b; margin-top: 5px; }
+    .divider { border: none; border-top: 1px solid #334155; margin: 22px 0; }
+    .btn { display: block; width: 100%; padding: 13px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all .2s; margin-top: 4px; }
+    .btn-primary { background: #0277fa; color: #fff; }
+    .btn-primary:hover { background: #0369d1; }
+    .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    .btn-go { background: #059669; color: #fff; margin-top: 12px; display: none; }
+    .btn-go:hover { background: #047857; }
+    .status { border-radius: 10px; padding: 14px 18px; margin-top: 18px; font-size: .9rem; display: none; }
+    .status.success { background: #064e3b; border: 1px solid #065f46; color: #6ee7b7; }
+    .status.error   { background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5; }
+    .status.warn    { background: #451a03; border: 1px solid #92400e; color: #fcd34d; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 42px; }
+    .pw-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748b; cursor: pointer; font-size: .85rem; padding: 0; }
+    .pw-toggle:hover { color: #94a3b8; }
+    .already-note { background: #1e3a5f; border: 1px solid #1e40af; border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: #93c5fd; margin-bottom: 20px; display: none; }
+  </style>
+</head>
+<body>
+<div class="card">
+
+  <div class="logo">
+    <span class="logo-badge">SPMS</span>
+  </div>
+  <h1>First-Time Setup <span class="badge-admin">ADMIN</span></h1>
+  <p class="subtitle">Create your admin account to get started. This page auto-detects if an account already exists.</p>
+
+  <div class="already-note" id="already-note"></div>
+
+  <div class="field">
+    <label>Username</label>
+    <input type="text" id="f-username" value="admin" placeholder="admin" autocomplete="off">
+    <div class="hint">Lowercase recommended. Min 3 characters.</div>
+  </div>
+
+  <div class="field">
+    <label>Full Name</label>
+    <input type="text" id="f-fullname" value="Admin" placeholder="Your full name" autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label>Email</label>
+    <input type="email" id="f-email" value="kilachand@jetking.com" placeholder="email@example.com" autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label>Phone (optional)</label>
+    <input type="text" id="f-phone" value="" placeholder="10-digit mobile number" autocomplete="off">
+  </div>
+
+  <hr class="divider">
+
+  <div class="field">
+    <label>Password</label>
+    <div class="pw-wrap">
+      <input type="password" id="f-password" placeholder="Enter your desired password (min 4 chars)" autocomplete="new-password">
+      <button class="pw-toggle" type="button" onclick="togglePw('f-password', this)">Show</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Confirm Password</label>
+    <div class="pw-wrap">
+      <input type="password" id="f-password2" placeholder="Re-enter password" autocomplete="new-password">
+      <button class="pw-toggle" type="button" onclick="togglePw('f-password2', this)">Show</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Admin Key</label>
+    <input type="text" id="f-adminkey" value="SPMSADMIN2026" readonly>
+    <div class="hint">Pre-filled — grants Admin role automatically.</div>
+  </div>
+
+  <button class="btn btn-primary" id="btn-setup" onclick="doSetup()">⚡ Create Admin Account</button>
+  <button class="btn btn-go" id="btn-go" onclick="window.location.href='auth.html'">🚀 Go to SPMS Login</button>
+  <div class="status" id="status"></div>
+
+</div>
+
+<script>
+  const USERS_KEY  = 'spms_users';
+  const ADMIN_KEY  = 'SPMSADMIN2026';
+
+  // Same hash as storage.js _hashPassword
+  function hashPassword(password) {
+    let h = 5381;
+    for (let i = 0; i < password.length; i++) {
+      h = (Math.imul(31, h) + password.charCodeAt(i)) | 0;
+    }
+    h = h ^ 0x53504D53;
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function loadUsers() {
+    try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.className = 'status ' + type;
+    el.innerHTML = msg;
+    el.style.display = 'block';
+  }
+
+  function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
+    else { inp.type = 'password'; btn.textContent = 'Show'; }
+  }
+
+  // On load: check if admin user already exists
+  window.addEventListener('DOMContentLoaded', () => {
+    const users = loadUsers();
+    const admins = users.filter(u => u.role === 'admin');
+    if (admins.length > 0) {
+      const note = document.getElementById('already-note');
+      note.style.display = 'block';
+      note.innerHTML = `ℹ️ ${admins.length} admin account(s) already exist: <strong>${admins.map(u => '@' + u.username).join(', ')}</strong>. You can add another or just <a href="auth.html" style="color:#7dd3fc">go to login →</a>`;
+    }
+  });
+
+  function doSetup() {
+    const btn       = document.getElementById('btn-setup');
+    const username  = document.getElementById('f-username').value.trim();
+    const fullName  = document.getElementById('f-fullname').value.trim();
+    const email     = document.getElementById('f-email').value.trim();
+    const phone     = document.getElementById('f-phone').value.trim();
+    const password  = document.getElementById('f-password').value;
+    const password2 = document.getElementById('f-password2').value;
+
+    // Validation
+    if (!username)              { showStatus('❌ Username is required.', 'error'); return; }
+    if (username.length < 3)    { showStatus('❌ Username must be at least 3 characters.', 'error'); return; }
+    if (!fullName)              { showStatus('❌ Full name is required.', 'error'); return; }
+    if (!password)              { showStatus('❌ Password is required.', 'error'); return; }
+    if (password.length < 4)    { showStatus('❌ Password must be at least 4 characters.', 'error'); return; }
+    if (password !== password2) { showStatus('❌ Passwords do not match.', 'error'); return; }
+
+    const users = loadUsers();
+    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+      showStatus(`⚠️ Username <strong>@${username}</strong> already exists. Try a different username or <a href="auth.html" style="color:#fcd34d">go to login →</a>`, 'warn');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+
+    try {
+      const user = {
+        id:           'u_' + Date.now(),
+        username:     username,
+        fullName:     fullName,
+        email:        email,
+        phone:        phone,
+        role:         'admin',
+        passwordHash: hashPassword(password),
+        createdAt:    new Date().toISOString().split('T')[0]
+      };
+
+      users.push(user);
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+      showStatus(
+        `✅ <strong>Admin account created!</strong><br>` +
+        `<span style="color:#6ee7b7">Username:</span> @${username}<br>` +
+        `<span style="color:#6ee7b7">Role:</span> Admin<br>` +
+        `<span style="color:#6ee7b7">Email:</span> ${email || '(not set)'}`,
+        'success'
+      );
+      document.getElementById('btn-go').style.display = 'block';
+      btn.textContent = '✅ Account Created';
+
+    } catch (err) {
+      showStatus('❌ Error: ' + err.message, 'error');
+      btn.disabled = false;
+      btn.textContent = '⚡ Create Admin Account';
+    }
+  }
+</script>
+</body>
+</html>
