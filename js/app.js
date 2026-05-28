@@ -3029,6 +3029,38 @@ const App = (() => {
     UI.renderSidebar(Storage.getMyBatches(), null);
     _updateContentTopbar('Manage Users');
     UI.renderAdminManageUsersScreen();
+    // Wire "+ Add User" button after render
+    document.getElementById('btn-add-user')?.addEventListener('click', openAdminCreateUserModal);
+  }
+
+  function openAdminCreateUserModal() {
+    const modal = UI.showCreateUserModal();
+    document.getElementById('modal-confirm').addEventListener('click', () => {
+      const errEl    = document.getElementById('cu-error');
+      const fullName = document.getElementById('cu-fullname').value.trim();
+      const username = document.getElementById('cu-username').value.trim();
+      const email    = document.getElementById('cu-email').value.trim();
+      const phone    = document.getElementById('cu-phone').value.trim();
+      const role     = document.getElementById('cu-role').value;
+      const pw       = document.getElementById('cu-pw').value;
+      const pw2      = document.getElementById('cu-pw2').value;
+
+      errEl.style.display = 'none';
+      if (!fullName) { errEl.textContent = 'Full name is required.'; errEl.style.display = ''; return; }
+      if (!username) { errEl.textContent = 'Username is required.'; errEl.style.display = ''; return; }
+      if (!pw)       { errEl.textContent = 'Password is required.'; errEl.style.display = ''; return; }
+      if (pw !== pw2){ errEl.textContent = 'Passwords do not match.'; errEl.style.display = ''; return; }
+
+      // Pass SPMSADMIN2026 as adminKey when role === 'admin'
+      const adminKey = role === 'admin' ? 'SPMSADMIN2026' : '';
+      const result   = Storage.createUser({ username, password: pw, fullName, email, phone, adminKey });
+      if (!result.ok) { errEl.textContent = result.error; errEl.style.display = ''; return; }
+
+      modal.remove();
+      UI.showToast(`User @${username} created successfully as ${role}.`, 'success');
+      openAdminManageUsers(); // refresh the list
+    });
+    bindModalClose(modal);
   }
 
   function openAdminScoring() {
@@ -3257,6 +3289,59 @@ const App = (() => {
         if (m !== menu) m.classList.remove('is-open');
       });
       menu?.classList.toggle('is-open');
+      return;
+    }
+
+    // User Management: admin edits a user profile
+    if (action === 'admin-edit-user') {
+      e.stopPropagation();
+      const targetId  = btn.dataset.uid;
+      const adminUser = Storage.getCurrentUser();
+      if (!adminUser || adminUser.role !== 'admin') return;
+      document.querySelectorAll('.kebab-menu.is-open').forEach(m => m.classList.remove('is-open'));
+      const target = Storage.getAllUsers().find(u => u.id === targetId);
+      if (!target) { UI.showToast('User not found.', 'error'); return; }
+      const modal = UI.showEditUserModal(target);
+      document.getElementById('modal-confirm').addEventListener('click', () => {
+        const errEl = document.getElementById('eu-error');
+        const fullName = document.getElementById('eu-fullname').value.trim();
+        const email    = document.getElementById('eu-email').value.trim();
+        const phone    = document.getElementById('eu-phone').value.trim();
+        const designation = document.getElementById('eu-designation')?.value.trim() || '';
+        if (!fullName) { errEl.textContent = 'Full name is required.'; errEl.style.display = ''; return; }
+        const result = Storage.updateUser(targetId, { fullName, email, phone, designation });
+        if (!result.ok) { errEl.textContent = result.error; errEl.style.display = ''; return; }
+        modal.remove();
+        UI.showToast(`Profile updated for @${target.username}.`, 'success');
+        openAdminManageUsers();
+      });
+      bindModalClose(modal);
+      return;
+    }
+
+    // User Management: admin force-resets a user's password
+    if (action === 'admin-reset-user-pw') {
+      e.stopPropagation();
+      const targetId   = btn.dataset.uid;
+      const targetName = btn.dataset.uname;
+      const adminUser  = Storage.getCurrentUser();
+      if (!adminUser || adminUser.role !== 'admin') return;
+      document.querySelectorAll('.kebab-menu.is-open').forEach(m => m.classList.remove('is-open'));
+      const target = Storage.getAllUsers().find(u => u.id === targetId);
+      if (!target) { UI.showToast('User not found.', 'error'); return; }
+      const modal = UI.showAdminResetPasswordModal(target);
+      document.getElementById('modal-confirm').addEventListener('click', () => {
+        const errEl = document.getElementById('rp-error');
+        const pw    = document.getElementById('rp-pw').value;
+        const pw2   = document.getElementById('rp-pw2').value;
+        if (!pw || pw.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; errEl.style.display = ''; return; }
+        if (pw !== pw2)           { errEl.textContent = 'Passwords do not match.'; errEl.style.display = ''; return; }
+        const result = Storage.adminForceResetPassword(targetId, pw);
+        if (!result.ok) { errEl.textContent = result.error; errEl.style.display = ''; return; }
+        modal.remove();
+        UI.showToast(`Password reset for @${targetName}.`, 'success');
+      });
+      bindModalClose(modal);
       return;
     }
 

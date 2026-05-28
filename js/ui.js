@@ -1774,6 +1774,165 @@ const UI = (() => {
     return modal;
   }
 
+  // ─── Admin: Create / Edit User modals ────────────────────────────────────
+
+  function showCreateUserModal() {
+    const modal = el('div', 'modal-overlay');
+    modal.innerHTML = `
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Add New User</h2>
+          <button class="modal-close" id="modal-close">${_ICONS.close}</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="cu-fullname" class="form-input" placeholder="e.g. Rahul Sharma" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Username *</label>
+              <input type="text" id="cu-username" class="form-input" placeholder="e.g. rahul.sharma" autocomplete="off"
+                style="font-family:monospace;letter-spacing:.03em;">
+              <p style="font-size:.74rem;color:var(--text3);margin-top:.2rem">Lowercase, no spaces. Used to log in.</p>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="cu-email" class="form-input" placeholder="email@jetking.com" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="text" id="cu-phone" class="form-input" placeholder="10-digit mobile" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Role *</label>
+            <select id="cu-role" class="form-select">
+              <option value="trainer">Trainer</option>
+              <option value="admin">Admin</option>
+            </select>
+            <p style="font-size:.74rem;color:var(--text3);margin-top:.2rem" id="cu-role-hint">
+              Trainer — can manage own batches and students.
+            </p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+            <div class="form-group">
+              <label>Password *</label>
+              <input type="password" id="cu-pw" class="form-input" placeholder="Min 4 characters" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label>Confirm Password *</label>
+              <input type="password" id="cu-pw2" class="form-input" placeholder="Re-enter password" autocomplete="new-password">
+            </div>
+          </div>
+          <p id="cu-error" style="color:var(--danger,#ef4444);font-size:.84rem;margin-top:.25rem;display:none"></p>
+          <div class="modal-footer">
+            <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="modal-confirm">Create User</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('cu-fullname').focus();
+    // Role hint
+    document.getElementById('cu-role').addEventListener('change', e => {
+      const hints = { trainer: 'Trainer — can manage own batches and students.', admin: 'Admin — full access to all batches, users, and settings.' };
+      document.getElementById('cu-role-hint').textContent = hints[e.target.value] || '';
+    });
+    return modal;
+  }
+
+  function showEditUserModal(user) {
+    const modal = el('div', 'modal-overlay');
+    modal.innerHTML = `
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Edit Profile — @${escHtml(user.username)}</h2>
+          <button class="modal-close" id="modal-close">${_ICONS.close}</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="eu-fullname" class="form-input" value="${escHtml(user.fullName || '')}" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" class="form-input" value="@${escHtml(user.username)}" readonly
+                style="opacity:.5;cursor:not-allowed;font-family:monospace" title="Username cannot be changed here">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="eu-email" class="form-input" value="${escHtml(user.email || '')}" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="text" id="eu-phone" class="form-input" value="${escHtml(user.phone || '')}" autocomplete="off">
+            </div>
+          </div>
+          ${user.role !== 'student' ? `
+          <div class="form-group">
+            <label>Designation / Title</label>
+            <input type="text" id="eu-designation" class="form-input"
+              value="${escHtml(user.designation || '')}" placeholder="e.g. Senior Trainer">
+          </div>` : ''}
+          <div class="form-group">
+            <label>Role</label>
+            <input type="text" class="form-input" value="${escHtml(user.role)}" readonly
+              style="opacity:.5;cursor:not-allowed;text-transform:capitalize" title="Role cannot be changed">
+            <p style="font-size:.74rem;color:var(--text3);margin-top:.2rem">Role cannot be changed after account creation.</p>
+          </div>
+          <p id="eu-error" style="color:var(--danger,#ef4444);font-size:.84rem;margin-top:.25rem;display:none"></p>
+          <div class="modal-footer">
+            <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="modal-confirm">Save Changes</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('eu-fullname').focus();
+    return modal;
+  }
+
+  function showAdminResetPasswordModal(user) {
+    const modal = el('div', 'modal-overlay');
+    modal.innerHTML = `
+      <div class="modal" style="max-width:420px">
+        <div class="modal-header">
+          <h2>Reset Password — @${escHtml(user.username)}</h2>
+          <button class="modal-close" id="modal-close">${_ICONS.close}</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:.88rem;color:var(--text2);margin-bottom:1rem">
+            Set a new password for <strong>${escHtml(user.fullName || user.username)}</strong>.
+            They can change it again from their Profile settings.
+          </p>
+          <div class="form-group">
+            <label>New Password *</label>
+            <input type="password" id="rp-pw" class="form-input" placeholder="Min 4 characters" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>Confirm Password *</label>
+            <input type="password" id="rp-pw2" class="form-input" placeholder="Re-enter new password" autocomplete="new-password">
+          </div>
+          <p id="rp-error" style="color:var(--danger,#ef4444);font-size:.84rem;margin-top:.25rem;display:none"></p>
+          <div class="modal-footer">
+            <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="modal-confirm">Reset Password</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('rp-pw').focus();
+    return modal;
+  }
+
+  // ─── End Admin User modals ───────────────────────────────────────────────
+
   function showBulkImportModal(rows, onConfirm) {
     const modal = el('div', 'modal-overlay');
     const hasRows = rows.length > 0;
@@ -4166,6 +4325,10 @@ const UI = (() => {
             : `<div class="kebab-wrap">
                  <button class="btn-kebab" data-action="user-kebab" data-uid="${u.id}" title="Actions">${_ICONS.dotsV}</button>
                  <div class="kebab-menu" id="kebab-${u.id}">
+                   <button class="kebab-item" data-action="admin-edit-user"
+                     data-uid="${u.id}">${_ICONS.edit} Edit Profile</button>
+                   <button class="kebab-item" data-action="admin-reset-user-pw"
+                     data-uid="${u.id}" data-uname="${u.username}">🔑 Reset Password</button>
                    <button class="kebab-item kebab-item--danger" data-action="admin-delete-user"
                      data-uid="${u.id}" data-uname="${u.username}">${_ICONS.trash} Delete Account</button>
                  </div>
@@ -4180,6 +4343,9 @@ const UI = (() => {
         <div>
           <h1 class="view-title">Manage Users</h1>
           <p class="view-sub">${allUsers.length} account${allUsers.length !== 1 ? 's' : ''} registered</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-add-user">+ Add User</button>
         </div>
       </div>
       <div class="card acc-section">
@@ -4207,7 +4373,7 @@ const UI = (() => {
           <p class="empty-state" id="user-empty-state" style="display:none">No users match your search.</p>
         </div>
         <p style="font-size:.8rem;color:var(--text3);margin-top:.75rem">
-          New accounts are created via the Sign Up screen. Only admins can delete accounts.
+          Only admins can create, edit or delete accounts. Student portal logins are managed inside each batch.
         </p>
       </div>`;
 
@@ -5634,6 +5800,7 @@ const UI = (() => {
     renderAttendanceDashboard,
     renderStudentProfile, renderProfileTab,
     showBatchModal, showStudentModal, showBulkImportModal, showTransferModal, showConfirm, showDeleteRecurringModal, showToast,
+    showCreateUserModal, showEditUserModal, showAdminResetPasswordModal,
     getMockParamsConfig,
     // Auth screen
     renderAuthScreen, showAuthError, setAuthState,

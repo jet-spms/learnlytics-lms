@@ -1275,6 +1275,23 @@ const Storage = (() => {
   }
 
   /**
+   * adminForceResetPassword — admin sets a new password for ANY user (trainer/admin/student)
+   * by userId, without requiring the old password. Admin-only privilege.
+   * Returns { ok: true } or { ok: false, error }.
+   */
+  function adminForceResetPassword(userId, newPassword) {
+    if (!newPassword || newPassword.length < 4)
+      return { ok: false, error: 'Password must be at least 4 characters.' };
+    const users = _loadUsers();
+    const idx   = users.findIndex(u => u.id === userId);
+    if (idx === -1) return { ok: false, error: 'User not found.' };
+    users[idx].passwordHash = _hashPassword(newPassword);
+    _touchUser(users[idx]);
+    _saveUsers(users);
+    return { ok: true };
+  }
+
+  /**
    * authenticateUser — V4-1: writes to sessionStorage instead of localStorage.
    */
   function authenticateUser(username, password) {
@@ -1876,7 +1893,7 @@ const Storage = (() => {
     createUser, authenticateUser, getCurrentUser, logoutUser,
     updateUser, changePassword, deleteAccount, adminDeleteUser, getAllUsers,
     // STUDENT_PORTAL
-    createStudentUser, getStudentUser, deleteStudentUser, adminResetStudentPassword,
+    createStudentUser, getStudentUser, deleteStudentUser, adminResetStudentPassword, adminForceResetPassword,
     // Batch isolation
     getBatchesForUser, getMyBatches, migrateOrphanedBatches,
     // P1: Batch management enhancements
