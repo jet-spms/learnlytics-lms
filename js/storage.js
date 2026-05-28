@@ -1322,14 +1322,40 @@ const Storage = (() => {
   function logoutUser() { _clearSessionUserId(); }
 
   // ─── Batch Isolation Helpers ───────────────────────────────────────────────
-  // AD1: a batch "belongs" to a user if they own it OR if they appear in assignedTrainers[].
-  // Soft-delete filter applied here so deleted batches never appear in faculty views.
+  // AD1: a batch "belongs" to a user if they own it, are the primary instructor,
+  // or appear in assignedTrainers[]. Soft-delete filter applied here.
   function getBatchesForUser(userId) {
     if (!userId) return [];
     return load().batches
       .filter(b => !b.deleted &&
-                   (b.ownerId === userId || (b.assignedTrainers || []).includes(userId)))
+                   (b.ownerId === userId ||
+                    b.primaryInstructorId === userId ||
+                    (b.assignedTrainers || []).includes(userId)))
       .map(_normalizeBatch);
+  }
+
+  // AD1-b: assignBatchesToUser — bulk-assign a list of batchIds to a user as an assigned trainer.
+  // Batches not in the new list get the user removed from assignedTrainers (but ownerId is never touched).
+  function assignBatchesToUser(userId, assignedBatchIds) {
+    const data = load();
+    let changed = false;
+    const idSet = new Set(assignedBatchIds);
+    data.batches.forEach(b => {
+      const trainers = b.assignedTrainers || [];
+      const isOwner  = b.ownerId === userId;
+      if (isOwner) return; // never remove owner visibility
+      const shouldHave = idSet.has(b.id);
+      const hasNow     = trainers.includes(userId);
+      if (shouldHave && !hasNow) {
+        b.assignedTrainers = [...trainers, userId];
+        _touchBatch(b); changed = true;
+      } else if (!shouldHave && hasNow) {
+        b.assignedTrainers = trainers.filter(id => id !== userId);
+        _touchBatch(b); changed = true;
+      }
+    });
+    if (changed) save(data);
+    return { ok: true };
   }
 
   // P1-4: getMyBatches() excludes archived batches — archived appear only in getArchivedBatches()
@@ -1895,7 +1921,7 @@ const Storage = (() => {
     // STUDENT_PORTAL
     createStudentUser, getStudentUser, deleteStudentUser, adminResetStudentPassword, adminForceResetPassword,
     // Batch isolation
-    getBatchesForUser, getMyBatches, migrateOrphanedBatches,
+    getBatchesForUser, getMyBatches, migrateOrphanedBatches, assignBatchesToUser,
     // P1: Batch management enhancements
     getArchivedBatches, archiveBatch, unarchiveBatch, transferStudent,
     // P5: Admin Control Center

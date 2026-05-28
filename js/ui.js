@@ -4358,7 +4358,12 @@ const UI = (() => {
         <td>${b.students?.length || 0}</td>
         <td>${capDisp}</td>
         <td><span class="batch-status-badge batch-status--${b.status || 'active'}">${_statusLabel(b.status)}</span></td>
-        <td><button class="btn btn-sm btn-outline" data-action="admin-view-batch" data-bid="${b.id}">View →</button></td>
+        <td>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+            <button class="btn btn-sm btn-outline" data-action="admin-assign-instructors" data-bid="${b.id}" title="Assign faculty to this batch">👤 Assign</button>
+            <button class="btn btn-sm btn-outline" data-action="admin-view-batch" data-bid="${b.id}">View →</button>
+          </div>
+        </td>
       </tr>`;
     }).join('') : `<tr><td colspan="7" class="acc-empty">No batches yet.</td></tr>`;
 
@@ -4640,6 +4645,8 @@ const UI = (() => {
                      data-uid="${u.id}">${_ICONS.edit} Edit Profile</button>
                    <button class="kebab-item" data-action="admin-reset-user-pw"
                      data-uid="${u.id}" data-uname="${u.username}">🔑 Reset Password</button>
+                   ${u.role !== 'student' ? `<button class="kebab-item" data-action="admin-assign-batches-to-user"
+                     data-uid="${u.id}">📋 Assign Batches</button>` : ''}
                    <button class="kebab-item kebab-item--danger" data-action="admin-delete-user"
                      data-uid="${u.id}" data-uname="${u.username}">${_ICONS.trash} Delete Account</button>
                  </div>
@@ -6098,6 +6105,90 @@ const UI = (() => {
     `;
   }
 
+  // ─── Assign Batches to User — modal ─────────────────────────────────────────
+  /**
+   * showAssignBatchesToUserModal(user, allBatches, onSave)
+   *  Shows all non-deleted batches as checkboxes.
+   *  Pre-checks batches where user is already ownerId, primaryInstructorId, or assignedTrainers[].
+   *  Owned batches are read-only (cannot be unchecked — they belong to the trainer).
+   *  onSave(assignedBatchIds[]) — array of batch IDs that should now have this user as a trainer.
+   */
+  function showAssignBatchesToUserModal(user, allBatches, onSave) {
+    const modal = el('div', 'modal-overlay');
+    const displayName = user.fullName || user.username;
+
+    const activeBatches = allBatches.filter(b => !b.deleted);
+
+    const batchChecks = activeBatches.map(b => {
+      const isOwner   = b.ownerId === user.id;
+      const isPrimary = b.primaryInstructorId === user.id;
+      const isAssigned = (b.assignedTrainers || []).includes(user.id);
+      const isChecked  = isOwner || isPrimary || isAssigned;
+      const readonly   = isOwner; // owner relationship can't be removed here
+
+      const tag = isOwner   ? `<span style="background:#0277FA22;color:#0277FA;padding:.1rem .4rem;border-radius:4px;font-size:.73rem">Owner</span>`
+                : isPrimary ? `<span style="background:#10B98122;color:#10B981;padding:.1rem .4rem;border-radius:4px;font-size:.73rem">Primary</span>`
+                : isAssigned ? `<span style="background:#F59E0B22;color:#F59E0B;padding:.1rem .4rem;border-radius:4px;font-size:.73rem">Assigned</span>`
+                : '';
+
+      return `<label class="acc-check-label" style="${readonly ? 'opacity:.6;cursor:not-allowed' : ''}">
+        <input type="checkbox" class="asn-batch-chk" value="${b.id}"
+          ${isChecked ? 'checked' : ''} ${readonly ? 'disabled' : ''}>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+            <span style="font-weight:600;color:#f1f5f9">${escHtml(b.name)}</span>
+            ${b.batchCode ? `<code style="background:rgba(255,255,255,.08);padding:.1rem .35rem;border-radius:4px;font-size:.75rem;color:#94a3b8">${escHtml(b.batchCode)}</code>` : ''}
+            ${tag}
+          </div>
+          <div style="font-size:.77rem;color:#64748b;margin-top:.1rem">
+            ${b.students?.length || 0} student${(b.students?.length || 0) !== 1 ? 's' : ''}
+            ${b.status && b.status !== 'active' ? ` · <em>${b.status}</em>` : ''}
+          </div>
+        </div>
+      </label>`;
+    }).join('');
+
+    modal.innerHTML = `
+      <div class="modal" style="max-width:560px;width:95vw">
+        <div class="modal-header">
+          <h2>Assign Batches</h2>
+          <button class="modal-close" id="modal-close">${_ICONS.close}</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:.85rem;color:var(--text2);margin-bottom:1rem">
+            Trainer: <strong>${escHtml(displayName)}</strong>
+            <em style="color:var(--text3)">@${escHtml(user.username)}</em><br>
+            <span style="font-size:.78rem;color:#64748b">
+              Checked batches will appear in this trainer's dashboard when they log in.
+              Batches marked <span style="color:#0277FA">Owner</span> cannot be removed here.
+            </span>
+          </p>
+          <div class="acc-check-group" style="max-height:340px;overflow-y:auto">
+            ${batchChecks || '<p class="empty-hint" style="color:#64748b;font-size:.85rem">No batches available.</p>'}
+          </div>
+          <div id="asn-batch-err" style="color:#f87171;font-size:.82rem;margin-top:.5rem;display:none"></div>
+          <div class="modal-footer" style="margin-top:1.25rem">
+            <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="modal-confirm">Save Assignment</button>
+          </div>
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('modal-cancel').addEventListener('click', () => modal.remove());
+    document.getElementById('modal-close').addEventListener('click',  () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    document.getElementById('modal-confirm').addEventListener('click', () => {
+      const checkedIds = [...document.querySelectorAll('.asn-batch-chk:checked')].map(c => c.value);
+      modal.remove();
+      onSave(checkedIds);
+    });
+
+    return modal;
+  }
+
   // ─── Import Batches from Excel — modal ───────────────────────────────────────
   /**
    * showImportBatchesModal(previewData, onAction)
@@ -6240,7 +6331,7 @@ const UI = (() => {
     renderStudentProfile, renderProfileTab,
     showBatchModal, showStudentModal, showBulkImportModal, showTransferModal, showConfirm, showDeleteRecurringModal, showToast,
     showCreateUserModal, showEditUserModal, showAdminResetPasswordModal,
-    showBackdatedEntryModal, showImportBatchesModal,
+    showBackdatedEntryModal, showImportBatchesModal, showAssignBatchesToUserModal,
     getMockParamsConfig,
     // Auth screen
     renderAuthScreen, showAuthError, setAuthState,

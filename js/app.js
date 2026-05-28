@@ -3334,10 +3334,17 @@ const App = (() => {
     if (!batch) return;
     UI.showInstructorAssignModal(batch, allUsers, (primaryId, assistantIds) => {
       Storage.updateBatchInstructors(batchId, primaryId, assistantIds);
-      // Re-render the detail view with fresh data
-      const updated = Storage.getBatch(batchId);
-      UI.renderAdminBatchDetail(updated, Storage.getAllUsers());
-      UI.showToast('Instructor assignment saved!', 'success');
+      UI.showToast('Faculty assigned! They will see this batch when they log in.', 'success');
+
+      // Refresh whichever admin screen is currently showing
+      if (state.view === 'admin-batch-detail') {
+        const updated = Storage.getBatch(batchId);
+        UI.renderAdminBatchDetail(updated, Storage.getAllUsers());
+      } else if (state.view === 'admin-all-batches') {
+        UI.renderAdminAllBatchesScreen();
+        document.getElementById('btn-import-batches')?.addEventListener('click', () => openImportBatchesModal());
+        // Re-wire assign buttons
+      }
     });
   }
 
@@ -3569,6 +3576,26 @@ const App = (() => {
         UI.showToast(`Password reset for @${targetName}.`, 'success');
       });
       bindModalClose(modal);
+      return;
+    }
+
+    // User Management: admin assigns batches to a trainer
+    if (action === 'admin-assign-batches-to-user') {
+      e.stopPropagation();
+      const targetId = btn.dataset.uid;
+      const adminUser = Storage.getCurrentUser();
+      if (!adminUser || adminUser.role !== 'admin') return;
+      document.querySelectorAll('.kebab-menu.is-open').forEach(m => m.classList.remove('is-open'));
+      const target     = Storage.getAllUsers().find(u => u.id === targetId);
+      const allBatches = Storage.getBatches();
+      if (!target) { UI.showToast('User not found.', 'error'); return; }
+      UI.showAssignBatchesToUserModal(target, allBatches, (assignedBatchIds) => {
+        Storage.assignBatchesToUser(targetId, assignedBatchIds);
+        const name = target.fullName || target.username;
+        UI.showToast(`Batches updated for ${name}.`, 'success');
+        // Re-render manage users to reflect any visible changes
+        openAdminManageUsers();
+      });
       return;
     }
 
