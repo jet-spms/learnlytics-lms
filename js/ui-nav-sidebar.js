@@ -96,7 +96,8 @@ const UINavSidebar = (() => {
     },
     { type: 'group', id: 'admin-batches',  label: 'Batches',  icon: _ICONS.allBatches,
       children: [
-        { id: 'admin-all-batches', label: 'All Batches' },
+        { id: 'admin-all-batches',         label: 'All Batches' },
+        { id: 'admin-faculty-performance', label: 'Faculty Batch Performance' },
       ]
     },
     { type: 'item',  id: 'admin-reports',  label: 'Reports',  icon: _ICONS.download },

@@ -3828,31 +3828,74 @@ const UI = (() => {
    * AD1: a batch is included if the user is the primary instructor (owner),
    * OR if they appear in assignedTrainers[] (PD Faculty / assigned role).
    */
-  function _calcInstructorMetrics(userId, allBatches) {
-    // Only count batches this user owns/is primary on.
-    // Assigned trainers are helpers — their assisted batches are credited to the
-    // primary instructor only, and they are excluded from Faculty Performance reports.
+  /**
+   * calcFacultyMetrics — computes all 5 performance dimensions for a faculty member.
+   *   Technical        = avg academicScore (weekly tests %)
+   *   Communication    = avg of `communication` field from presentationMetrics (0-10 → %)
+   *   Presentation     = avg presentationMetricsScore (all 5 criteria)
+   *   Labs             = avg Practical exam parameter score across modules (%)
+   *   PlacementReady   = % of students with finalScore >= 60 (Category A or B)
+   * Public — exposed as UI.calcFacultyMetrics for app.js chart builder.
+   */
+  function calcFacultyMetrics(userId, allBatches) {
     const batches = allBatches.filter(b =>
       b.ownerId === userId || b.primaryInstructorId === userId
     );
-    let totalFS = 0, totalAtt = 0, totalAcademic = 0, count = 0;
+    let totalFS = 0, totalAtt = 0, totalAcad = 0,
+        totalComm = 0, totalPres = 0, totalLabs = 0,
+        readyCount = 0, count = 0;
+
     batches.forEach(b => {
       const ctx = { holidays: b.holidays || [] };
       (b.students || []).forEach(s => {
-        const m       = Calc.allMetrics(s, ctx);
-        totalFS      += m.finalScore;
-        totalAtt     += m.attendance;
-        totalAcademic += m.academic;
+        const m = Calc.allMetrics(s, ctx);
+        totalFS   += m.finalScore;
+        totalAtt  += m.attendance;
+        totalAcad += m.academic;
+        totalPres += m.presentation;
+        if (m.finalScore >= 60) readyCount++;
+
+        // Communication: avg of `communication` field across presentationMetrics entries
+        const pm = s.presentationMetrics || s.careerMetrics || [];
+        if (pm.length) {
+          const commAvg = pm.reduce((a, e) => a + (e.communication || 0), 0) / pm.length;
+          totalComm += (commAvg / 10) * 100; // 0-10 → %
+        }
+
+        // Labs: Practical parameter across all exam modules
+        const exams = s.exams || [];
+        let labSum = 0, labMax = 0;
+        exams.forEach(mod => {
+          const params = mod.parameters || {};
+          const prac = params['Practical'];
+          if (prac && prac.appeared && prac.marks !== null && prac.marks !== undefined) {
+            labSum += prac.marks;
+            labMax += 100; // maxMarks for Practical = 100
+          }
+        });
+        totalLabs += labMax > 0 ? (labSum / labMax) * 100 : 0;
         count++;
       });
     });
+
+    const n = count || 1;
     return {
-      batches:     batches.length,
-      students:    count,
-      avgFinalScore: count > 0 ? totalFS / count : 0,
-      avgAtt:      count > 0 ? totalAtt      / count : 0,
-      avgAcademic: count > 0 ? totalAcademic / count : 0
+      batches:           batches.length,
+      batchList:         batches,
+      students:          count,
+      avgFinalScore:     count > 0 ? totalFS   / n : 0,
+      avgAtt:            count > 0 ? totalAtt  / n : 0,
+      avgAcademic:       count > 0 ? totalAcad / n : 0,
+      avgTechnical:      count > 0 ? totalAcad / n : 0,
+      avgCommunication:  count > 0 ? totalComm / n : 0,
+      avgPresentation:   count > 0 ? totalPres / n : 0,
+      avgLabs:           count > 0 ? totalLabs / n : 0,
+      placementReadiness: count > 0 ? (readyCount / count) * 100 : 0,
     };
+  }
+
+  function _calcInstructorMetrics(userId, allBatches) {
+    return calcFacultyMetrics(userId, allBatches);
   }
 
   /** Shared status label lookup used across admin views */
@@ -3959,52 +4002,60 @@ const UI = (() => {
       <div class="card acc-section">
         <div class="card-header">
           <h2 class="card-title">Faculty Performance Report</h2>
+          <a href="#" id="btn-go-faculty-perf" style="font-size:.82rem;color:var(--accent);text-decoration:none;font-weight:600">
+            View Detailed Report →
+          </a>
         </div>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Faculty</th><th>Designation</th><th>Batches</th><th>Students</th>
-                <th>Avg Final Score</th><th>Avg Attendance</th><th>Avg Academic</th>
+                <th>Faculty</th><th>Batches</th><th>Students</th>
+                <th title="Weekly test average">Technical</th>
+                <th title="Communication field from presentations">Communication</th>
+                <th title="All presentation criteria average">Presentation</th>
+                <th title="Practical/Lab exam average">Labs</th>
+                <th title="% students with Final Score ≥ 60">Placement Ready</th>
+                <th title="Overall weighted score">Final Score</th>
               </tr>
             </thead>
             <tbody>
               ${(() => {
-                // Only show users who own at least one batch — assigned-only trainers are
-                // helpers with no independent credit and are excluded from this report.
                 const facultyUsers = allUsers.filter(u => {
                   if (u.role === 'student') return false;
                   return allBatches.some(b => b.ownerId === u.id || b.primaryInstructorId === u.id);
                 });
                 if (!facultyUsers.length)
-                  return `<tr><td colspan="7" class="acc-empty">No faculty found.</td></tr>`;
+                  return `<tr><td colspan="9" class="acc-empty">No faculty found.</td></tr>`;
                 return facultyUsers.map(u => {
-                  const metrics = _calcInstructorMetrics(u.id, allBatches);
-                  const isAdm   = u.role === 'admin';
-                  // AD1: show designation if set, else fall back to role label
-                  const desg    = u.designation?.trim()
-                    || (isAdm ? 'Admin' : 'Technical Faculty');
-                  const has     = metrics.students > 0;
+                  const m   = calcFacultyMetrics(u.id, allBatches);
+                  const has = m.students > 0;
+                  const scoreBar = (val, col) => has
+                    ? `<div style="display:flex;align-items:center;gap:.4rem">
+                        <div style="flex:1;height:6px;border-radius:3px;background:var(--surface2,#1e293b);min-width:48px;max-width:72px;overflow:hidden">
+                          <div style="height:100%;width:${Math.min(100,val).toFixed(0)}%;background:${col};border-radius:3px"></div>
+                        </div>
+                        <span style="font-size:.8rem;font-weight:600;color:var(--text1)">${val.toFixed(1)}%</span>
+                       </div>`
+                    : '<span style="color:var(--text3)">—</span>';
                   return `<tr>
                     <td>
-                      <div style="display:flex;align-items:center;gap:.6rem">
+                      <div style="display:flex;align-items:center;gap:.55rem">
                         ${_avatarHTML(u.fullName || u.username, 'sm')}
                         <div>
-                          <div style="font-weight:600">${u.fullName || u.username}</div>
-                          <div style="font-size:.75rem;color:var(--text3)">@${u.username}</div>
+                          <div style="font-weight:600">${escHtml(u.fullName || u.username)}</div>
+                          <div style="font-size:.72rem;color:var(--text3)">${escHtml(u.designation || (u.role==='admin'?'Admin':'Trainer'))}</div>
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <span class="role-badge-inline ${isAdm ? 'role-badge--admin' : 'role-badge--trainer'}">
-                        ${desg}
-                      </span>
-                    </td>
-                    <td>${metrics.batches}</td>
-                    <td>${metrics.students}</td>
-                    <td><strong class="pi-value pi--${piColor(metrics.avgFinalScore)}">${has ? fmt(metrics.avgFinalScore) : '—'}</strong></td>
-                    <td>${has ? fmt(metrics.avgAtt) + '%' : '—'}</td>
-                    <td>${has ? fmt(metrics.avgAcademic) + '%' : '—'}</td>
+                    <td>${m.batches}</td>
+                    <td>${m.students}</td>
+                    <td>${scoreBar(m.avgTechnical,     '#0277FA')}</td>
+                    <td>${scoreBar(m.avgCommunication, '#10B981')}</td>
+                    <td>${scoreBar(m.avgPresentation,  '#8B5CF6')}</td>
+                    <td>${scoreBar(m.avgLabs,          '#F59E0B')}</td>
+                    <td>${scoreBar(m.placementReadiness,'#EC4899')}</td>
+                    <td><strong class="pi-value pi--${piColor(m.avgFinalScore)}">${has ? fmt(m.avgFinalScore) : '—'}</strong></td>
                   </tr>`;
                 }).join('');
               })()}
@@ -4340,6 +4391,207 @@ const UI = (() => {
         </div>
       </div>`;
   }
+
+  // ─── Faculty Batch Performance — dedicated admin page ────────────────────
+
+  function renderFacultyBatchPerformanceScreen(allUsers, allBatches) {
+    const main = document.getElementById('main-content');
+    if (!main) return;
+
+    const facultyUsers = allUsers.filter(u => {
+      if (u.role === 'student') return false;
+      return allBatches.some(b => b.ownerId === u.id || b.primaryInstructorId === u.id);
+    });
+
+    // Score bar helper
+    const scoreBar = (val, col, has) => has
+      ? `<div style="display:flex;align-items:center;gap:.5rem">
+           <div style="flex:1;height:7px;border-radius:4px;background:var(--surface2,#1e293b);min-width:60px;overflow:hidden">
+             <div style="height:100%;width:${Math.min(100,Math.max(0,val)).toFixed(0)}%;background:${col};border-radius:4px;transition:width .3s"></div>
+           </div>
+           <span style="min-width:3rem;font-size:.82rem;font-weight:700;color:var(--text1);text-align:right">${val.toFixed(1)}%</span>
+         </div>`
+      : '<span style="color:var(--text3);font-size:.82rem">No data</span>';
+
+    // Placement readiness badge
+    const readyBadge = (pct, has) => {
+      if (!has) return '<span style="color:var(--text3)">—</span>';
+      const cls = pct >= 70 ? 'good' : pct >= 40 ? 'warn' : 'bad';
+      const clsMap = { good: '#10B981', warn: '#F59E0B', bad: '#EF4444' };
+      return `<span style="display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.8rem;font-weight:700;color:#fff;background:${clsMap[cls]}">${pct.toFixed(0)}%</span>`;
+    };
+
+    // Per-faculty cards
+    const facultyCards = facultyUsers.length ? facultyUsers.map(u => {
+      const m   = calcFacultyMetrics(u.id, allBatches);
+      const has = m.students > 0;
+      const isAdm = u.role === 'admin';
+
+      // Per-batch rows
+      const batchRows = m.batchList.map(b => {
+        const ctx = { holidays: b.holidays || [] };
+        const students = b.students || [];
+        let bTech=0, bComm=0, bPres=0, bLabs=0, bReady=0, bFS=0, bc=0;
+        students.forEach(s => {
+          const sm = Calc.allMetrics(s, ctx);
+          bTech += sm.academic;
+          bPres += sm.presentation;
+          bFS   += sm.finalScore;
+          if (sm.finalScore >= 60) bReady++;
+          const pm = s.presentationMetrics || s.careerMetrics || [];
+          if (pm.length) {
+            bComm += (pm.reduce((a,e)=>a+(e.communication||0),0)/pm.length/10)*100;
+          }
+          const exams = s.exams || [];
+          let ls=0, lm=0;
+          exams.forEach(mod => {
+            const p = (mod.parameters||{})['Practical'];
+            if (p && p.appeared && p.marks!=null) { ls+=p.marks; lm+=100; }
+          });
+          bLabs += lm>0 ? (ls/lm)*100 : 0;
+          bc++;
+        });
+        const n  = bc||1;
+        const bh = bc>0;
+        return `<tr style="font-size:.85rem">
+          <td style="padding:.45rem .75rem">
+            <strong>${escHtml(b.name)}</strong>
+            <div style="font-size:.72rem;color:var(--text3)">${escHtml(b.batchCode||'')}</div>
+          </td>
+          <td style="padding:.45rem .75rem;text-align:center">${bc}</td>
+          <td style="padding:.45rem .75rem">${scoreBar(bh?bTech/n:0,'#0277FA',bh)}</td>
+          <td style="padding:.45rem .75rem">${scoreBar(bh?bComm/n:0,'#10B981',bh)}</td>
+          <td style="padding:.45rem .75rem">${scoreBar(bh?bPres/n:0,'#8B5CF6',bh)}</td>
+          <td style="padding:.45rem .75rem">${scoreBar(bh?bLabs/n:0,'#F59E0B',bh)}</td>
+          <td style="padding:.45rem .75rem;text-align:center">${readyBadge(bh?(bReady/bc)*100:0,bh)}</td>
+          <td style="padding:.45rem .75rem;text-align:center">
+            <strong class="pi-value pi--${piColor(bh?bFS/n:0)}">${bh?fmt(bFS/n):'—'}</strong>
+          </td>
+        </tr>`;
+      }).join('');
+
+      const scoreItems = [
+        { label: 'Technical',         val: m.avgTechnical,      col: '#0277FA', icon: '📚' },
+        { label: 'Communication',     val: m.avgCommunication,  col: '#10B981', icon: '🗣️' },
+        { label: 'Presentation',      val: m.avgPresentation,   col: '#8B5CF6', icon: '🎯' },
+        { label: 'Labs / Practical',  val: m.avgLabs,           col: '#F59E0B', icon: '🔬' },
+        { label: 'Placement Ready',   val: m.placementReadiness,col: '#EC4899', icon: '🏆' },
+      ];
+
+      return `
+      <div class="card acc-section" style="margin-bottom:1.75rem">
+        <!-- Faculty header -->
+        <div class="card-header" style="flex-wrap:wrap;gap:.75rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:.75rem;flex:1;min-width:0">
+            ${_avatarHTML(u.fullName || u.username, 'lg')}
+            <div>
+              <div style="font-size:1.1rem;font-weight:700;color:var(--text1)">${escHtml(u.fullName || u.username)}</div>
+              <div style="font-size:.8rem;color:var(--text3)">@${escHtml(u.username)} &nbsp;·&nbsp;
+                <span class="role-badge-inline ${isAdm?'role-badge--admin':'role-badge--trainer'}">${escHtml(u.designation||(isAdm?'Admin':'Technical Faculty'))}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+            <div style="text-align:center">
+              <div style="font-size:1.5rem;font-weight:800;color:var(--accent)">${m.batches}</div>
+              <div style="font-size:.72rem;color:var(--text3)">Batches</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:1.5rem;font-weight:800;color:var(--accent)">${m.students}</div>
+              <div style="font-size:.72rem;color:var(--text3)">Students</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:1.5rem;font-weight:800;color:var(--${piColor(m.avgFinalScore)})">${has?fmt(m.avgFinalScore):'—'}</div>
+              <div style="font-size:.72rem;color:var(--text3)">Final Score</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 score bars -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem;padding:1rem 0 .5rem">
+          ${scoreItems.map(si => `
+            <div style="background:var(--surface2,#1e293b);border-radius:10px;padding:.75rem 1rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+                <span style="font-size:.78rem;font-weight:600;color:var(--text2)">${si.icon} ${si.label}</span>
+                <span style="font-size:.95rem;font-weight:800;color:${si.col}">${has?si.val.toFixed(1)+'%':'—'}</span>
+              </div>
+              <div style="height:6px;border-radius:3px;background:var(--surface3,#0f172a);overflow:hidden">
+                <div style="height:100%;width:${has?Math.min(100,si.val).toFixed(0):0}%;background:${si.col};border-radius:3px;transition:width .4s"></div>
+              </div>
+            </div>`).join('')}
+        </div>
+
+        <!-- Per-batch table -->
+        ${m.batchList.length ? `
+        <div style="margin-top:.75rem">
+          <h4 style="font-size:.85rem;color:var(--text3);font-weight:600;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Batch Breakdown</h4>
+          <div class="table-wrap" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <table class="data-table" style="font-size:.85rem">
+              <thead>
+                <tr>
+                  <th>Batch</th><th style="text-align:center">Students</th>
+                  <th>Technical</th><th>Communication</th><th>Presentation</th>
+                  <th>Labs</th><th style="text-align:center">Placement Ready</th>
+                  <th style="text-align:center">Final Score</th>
+                </tr>
+              </thead>
+              <tbody>${batchRows}</tbody>
+            </table>
+          </div>
+        </div>` : ''}
+      </div>`;
+    }).join('') : `<div class="card"><p class="empty-hint">No faculty with assigned batches found.</p></div>`;
+
+    main.innerHTML = `
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Faculty Batch Performance</h1>
+          <p class="view-sub">Technical · Communication · Presentation · Labs · Placement Readiness — by faculty</p>
+        </div>
+      </div>
+
+      <!-- Institute summary stats -->
+      <div class="stats-grid" style="margin-bottom:1.5rem">
+        ${statCard('Faculty Members',   facultyUsers.length,   _ICONS.users,     'neutral')}
+        ${statCard('Total Batches',     allBatches.length,     _ICONS.allBatches,'neutral')}
+        ${statCard('Total Students',    allBatches.reduce((a,b)=>a+(b.students?.length||0),0), _ICONS.users, 'neutral')}
+        ${(() => {
+          let fsSum=0,fsN=0;
+          allBatches.forEach(b=>{const ctx={holidays:b.holidays||[]};(b.students||[]).forEach(s=>{fsSum+=Calc.allMetrics(s,ctx).finalScore;fsN++;});});
+          return statCard('Institute Avg Score', fsN>0?fmt(fsSum/fsN):'—', _ICONS.chartBar, piColor(fsN>0?fsSum/fsN:0));
+        })()}
+      </div>
+
+      <!-- Comparison chart -->
+      <div class="card acc-section" style="margin-bottom:1.75rem">
+        <div class="card-header">
+          <h2 class="card-title">Faculty Score Comparison</h2>
+          <span class="acc-count">5 dimensions</span>
+        </div>
+        <div style="padding:.5rem 1rem 1rem;height:280px">
+          <canvas id="chart-faculty-perf"></canvas>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;padding:0 1rem 1rem;font-size:.78rem">
+          ${[['#0277FA','Technical'],['#10B981','Communication'],['#8B5CF6','Presentation'],['#F59E0B','Labs'],['#EC4899','Placement Ready']].map(([c,l])=>`
+            <span style="display:flex;align-items:center;gap:.35rem;color:var(--text2)">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c}"></span>${l}
+            </span>`).join('')}
+        </div>
+      </div>
+
+      <!-- Per-faculty cards -->
+      ${facultyCards}
+    `;
+
+    // Wire "View Detailed" link back to this page from dashboard if it exists
+    document.getElementById('btn-go-faculty-perf')?.addEventListener('click', e => {
+      e.preventDefault();
+      // Dispatch nav event to app.js
+      document.dispatchEvent(new CustomEvent('spms-nav', { detail: 'admin-faculty-performance' }));
+    });
+  }
+
+  // ─── End Faculty Batch Performance ───────────────────────────────────────
 
   function renderAdminManageUsersScreen() {
     const main     = document.getElementById('main-content');
@@ -5853,6 +6105,7 @@ const UI = (() => {
     renderRemindersTasksScreen,
     renderAdminDashboardScreen, renderAdminReportsScreen,
     renderAdminAllBatchesScreen, renderAdminManageUsersScreen, renderAdminScoringScreen, renderAdminSyncScreen,
+    renderFacultyBatchPerformanceScreen, calcFacultyMetrics,
     renderBatchDashboard, renderQuickClass, updateQuickCard,
     renderAttendanceDashboard,
     renderStudentProfile, renderProfileTab,

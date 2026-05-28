@@ -87,9 +87,10 @@ const App = (() => {
     'timetable':            'Timetable',
     'settings':             'Settings',
     'reminders':            'Reminders & Tasks',
-    'admin-dashboard':      'Institute Dashboard',
-    'admin-all-batches':    'All Batches',
-    'admin-manage-users':   'Manage Users',
+    'admin-dashboard':           'Institute Dashboard',
+    'admin-all-batches':         'All Batches',
+    'admin-faculty-performance': 'Faculty Batch Performance',
+    'admin-manage-users':        'Manage Users',
     'admin-scoring':        'Scoring Config',
     'admin-backup':         'Backup & Restore',
     'admin-sync':           'Sync Status',
@@ -408,6 +409,8 @@ const App = (() => {
 
       case 'admin-all-batches':
         openAdminAllBatches(); break;
+      case 'admin-faculty-performance':
+        openFacultyBatchPerformance(); break;
       case 'admin-manage-users':
         openAdminManageUsers(); break;
       case 'admin-scoring':
@@ -2919,7 +2922,18 @@ const App = (() => {
     _updateContentTopbar('Institute Dashboard');
     UI.renderAdminDashboardScreen();
     _renderAdminDashboardCharts();
+    // Wire "View Detailed Report →" link on Faculty Performance card
+    document.getElementById('btn-go-faculty-perf')?.addEventListener('click', e => {
+      e.preventDefault();
+      openFacultyBatchPerformance();
+    });
   }
+
+  // Listen for spms-nav custom event dispatched by UI components (e.g. faculty perf link)
+  document.addEventListener('spms-nav', e => {
+    const section = e.detail;
+    if (section === 'admin-faculty-performance') openFacultyBatchPerformance();
+  });
 
   /**
    * _renderAdminDashboardCharts — builds datasets from active batches and
@@ -3019,6 +3033,65 @@ const App = (() => {
     UI.renderSidebar(Storage.getMyBatches(), null);
     _updateContentTopbar('All Batches');
     UI.renderAdminAllBatchesScreen();
+  }
+
+  function openFacultyBatchPerformance() {
+    if (!_adminGuard()) return;
+    state.view = 'admin-faculty-performance';
+    Charts.destroyAll();
+    UI.setNavSection('admin-faculty-performance');
+    UI.renderSidebar(Storage.getMyBatches(), null);
+    _updateContentTopbar('Faculty Batch Performance');
+    const allUsers   = Storage.getAllUsers();
+    const allBatches = Storage.getBatches();
+    UI.renderFacultyBatchPerformanceScreen(allUsers, allBatches);
+    // Chart is rendered by ui.js internally after DOM is built
+    _bindFacultyPerfCharts(allUsers, allBatches);
+  }
+
+  function _bindFacultyPerfCharts(allUsers, allBatches) {
+    // Grouped bar chart: one group per faculty, bars for each score dimension
+    const facultyUsers = allUsers.filter(u => {
+      if (u.role === 'student') return false;
+      return allBatches.some(b => b.ownerId === u.id || b.primaryInstructorId === u.id);
+    });
+    if (!facultyUsers.length) return;
+
+    const labels   = facultyUsers.map(u => u.fullName || u.username);
+    const techData  = [], commData  = [], presData  = [], labData  = [], readyData = [];
+
+    facultyUsers.forEach(u => {
+      const m = UI.calcFacultyMetrics(u.id, allBatches);
+      techData.push(parseFloat(m.avgTechnical.toFixed(1)));
+      commData.push(parseFloat(m.avgCommunication.toFixed(1)));
+      presData.push(parseFloat(m.avgPresentation.toFixed(1)));
+      labData.push(parseFloat(m.avgLabs.toFixed(1)));
+      readyData.push(parseFloat(m.placementReadiness.toFixed(1)));
+    });
+
+    const canvas = document.getElementById('chart-faculty-perf');
+    if (!canvas) return;
+    Charts.destroyAll();
+    Charts.create('chart-faculty-perf', 'bar', {
+      labels,
+      datasets: [
+        { label: 'Technical',       data: techData,  backgroundColor: '#0277FA' },
+        { label: 'Communication',   data: commData,  backgroundColor: '#10B981' },
+        { label: 'Presentation',    data: presData,  backgroundColor: '#8B5CF6' },
+        { label: 'Labs',            data: labData,   backgroundColor: '#F59E0B' },
+        { label: 'Placement Ready', data: readyData, backgroundColor: '#EC4899' },
+      ]
+    }, {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { color: '#94a3b8', font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%` } }
+      },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } },
+        y: { min: 0, max: 100, ticks: { color: '#94a3b8', callback: v => v + '%' }, grid: { color: 'rgba(148,163,184,0.1)' } }
+      }
+    });
   }
 
   function openAdminManageUsers() {
