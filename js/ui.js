@@ -1934,56 +1934,207 @@ const UI = (() => {
   // ─── End Admin User modals ───────────────────────────────────────────────
 
   /**
-   * showBackdatedEntryModal — lets a trainer pick a past date + student
-   * to enter/correct a missed presentation evaluation.
+   * showBackdatedEntryModal — enhanced v2
+   *   • Month / Year selector to navigate any past month
+   *   • Date picker constrained to the selected month (max = today)
+   *   • Student list auto-filters to only those marked Present / Late on chosen date
+   *   • Falls back to all students if no attendance data exists for that date
    * Returns the modal element.
    */
   function showBackdatedEntryModal(students, todayISO) {
-    // Default date = yesterday (or today if no past)
-    const yesterday = (() => {
-      const d = new Date(todayISO);
-      d.setDate(d.getDate() - 1);
+    const MONTH_NAMES = ['January','February','March','April','May','June',
+                         'July','August','September','October','November','December'];
+
+    const todayDate  = new Date(todayISO);
+    const todayYear  = todayDate.getFullYear();
+    const todayMonth = todayDate.getMonth(); // 0-indexed
+
+    // Build last-24-months list for the month select
+    const monthOpts = [];
+    for (let i = 0; i <= 23; i++) {
+      let y = todayYear, m = todayMonth - i;
+      while (m < 0) { m += 12; y--; }
+      monthOpts.push({ y, m, label: `${MONTH_NAMES[m]} ${y}` });
+    }
+
+    // Helpers
+    const firstDay = (y, m) => `${y}-${String(m+1).padStart(2,'0')}-01`;
+    const lastDay  = (y, m) => {
+      const last = new Date(y, m+1, 0).getDate();
+      return `${y}-${String(m+1).padStart(2,'0')}-${String(last).padStart(2,'0')}`;
+    };
+    const clamp = (val, min, max) => val < min ? min : val > max ? max : val;
+
+    // Default: current month, yesterday as date
+    const defYear  = todayYear;
+    const defMonth = todayMonth;
+    const defDate  = (() => {
+      const d = new Date(todayISO); d.setDate(d.getDate()-1);
       return d.toISOString().split('T')[0];
     })();
 
     const modal = el('div', 'modal-overlay');
     modal.innerHTML = `
-      <div class="modal" style="max-width:440px">
+      <div class="modal" style="max-width:520px;width:96vw">
         <div class="modal-header">
           <h2>📝 Backdate Presentation Entry</h2>
           <button class="modal-close" id="modal-close">${_ICONS.close}</button>
         </div>
         <div class="modal-body">
-          <p style="font-size:.88rem;color:var(--text2);margin-bottom:1.25rem;line-height:1.5">
-            Select the student and the date of the presentation. You can then score it as usual.
-            Existing evaluations for the same student + date will be <strong>overwritten</strong>.
-          </p>
-          <div class="form-group">
-            <label>Student *</label>
-            <select id="bd-student" class="form-select">
-              <option value="">— Select student —</option>
-              ${students.map(s =>
-                `<option value="${escHtml(s.id)}">${escHtml(s.name)}${s.studentId ? ' · ' + escHtml(s.studentId) : ''}</option>`
-              ).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Presentation Date *</label>
-            <input type="date" id="bd-date" class="form-input"
-              value="${yesterday}" max="${todayISO}" style="cursor:pointer">
-            <p style="font-size:.75rem;color:var(--text3);margin-top:.25rem">
-              Select any past date (or today). Future dates are not allowed.
+
+          <!-- Step 1: Month & Date -->
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+               border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem">
+            <div style="font-size:.78rem;font-weight:700;color:var(--accent,#0277FA);
+                 letter-spacing:.08em;margin-bottom:.65rem">STEP 1 — SELECT MONTH & DATE</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem">
+              <div>
+                <label style="font-size:.8rem;color:var(--text3);display:block;margin-bottom:.3rem">Month</label>
+                <select id="bd-month-sel" class="form-select" style="width:100%">
+                  ${monthOpts.map((o,i) =>
+                    `<option value="${o.y}-${o.m}"${i===0?' selected':''}>${o.label}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div>
+                <label style="font-size:.8rem;color:var(--text3);display:block;margin-bottom:.3rem">
+                  Date <span style="color:var(--danger,#ef4444)">*</span>
+                </label>
+                <input type="date" id="bd-date" class="form-input"
+                  value="${defDate}"
+                  min="${firstDay(defYear,defMonth)}"
+                  max="${clamp(defDate, firstDay(defYear,defMonth), todayISO)}"
+                  style="cursor:pointer;width:100%">
+              </div>
+            </div>
+            <p style="font-size:.76rem;color:var(--text3);margin:0">
+              Choose the month first, then pick the exact presentation date.
+              Future dates are not allowed.
             </p>
           </div>
-          <p id="bd-error" style="color:var(--danger,#ef4444);font-size:.84rem;margin-top:.25rem;display:none"></p>
+
+          <!-- Step 2: Student (filtered by attendance) -->
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+               border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem">
+            <div style="font-size:.78rem;font-weight:700;color:var(--accent,#0277FA);
+                 letter-spacing:.08em;margin-bottom:.65rem">STEP 2 — SELECT STUDENT</div>
+
+            <!-- Attendance summary badge -->
+            <div id="bd-att-badge" style="margin-bottom:.65rem"></div>
+
+            <label style="font-size:.8rem;color:var(--text3);display:block;margin-bottom:.3rem">
+              Student <span style="color:var(--danger,#ef4444)">*</span>
+            </label>
+            <select id="bd-student" class="form-select" style="width:100%">
+              <option value="">— Pick a date first —</option>
+            </select>
+            <p id="bd-att-note" style="font-size:.75rem;color:var(--text3);margin:.3rem 0 0"></p>
+          </div>
+
+          <p id="bd-error" style="color:var(--danger,#ef4444);font-size:.84rem;
+               margin-top:.25rem;display:none"></p>
           <div class="modal-footer">
             <button class="btn btn-outline" id="modal-cancel">Cancel</button>
             <button class="btn btn-primary" id="modal-confirm">Next → Score Presentation</button>
           </div>
         </div>
       </div>`;
+
     document.body.appendChild(modal);
-    document.getElementById('bd-student').focus();
+
+    // ── Reactive logic ──────────────────────────────────────────────────────
+    const monthSel  = modal.querySelector('#bd-month-sel');
+    const dateInp   = modal.querySelector('#bd-date');
+    const stuSel    = modal.querySelector('#bd-student');
+    const attBadge  = modal.querySelector('#bd-att-badge');
+    const attNote   = modal.querySelector('#bd-att-note');
+
+    function getPresentStudents(dateISO) {
+      if (!dateISO) return { list: [], hasData: false };
+      const present = students.filter(s => {
+        const sess = (s.sessions || []).find(r => r.date === dateISO);
+        if (!sess) return false;
+        const st = sess.status || (sess.present ? 'present' : 'absent');
+        return st === 'present' || st === 'late';
+      });
+      const hasData = students.some(s => (s.sessions || []).some(r => r.date === dateISO));
+      return { list: present, hasData };
+    }
+
+    function rebuildStudentDropdown(dateISO) {
+      const { list: present, hasData } = getPresentStudents(dateISO);
+      const useList   = present.length > 0 ? present : students;
+      const fallback  = present.length === 0;
+
+      // Attendance badge
+      if (!dateISO) {
+        attBadge.innerHTML = '';
+        attNote.textContent = '';
+      } else if (!hasData) {
+        attBadge.innerHTML = `
+          <div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);
+               border-radius:6px;padding:.45rem .75rem;font-size:.82rem;color:#F59E0B">
+            ⚠️  No attendance records found for this date — showing all students.
+          </div>`;
+        attNote.textContent = 'Attendance was not recorded for this date.';
+      } else if (fallback) {
+        attBadge.innerHTML = `
+          <div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);
+               border-radius:6px;padding:.45rem .75rem;font-size:.82rem;color:#f87171">
+            ℹ️  No students were marked present — showing all students.
+          </div>`;
+        attNote.textContent = 'All students shown as no one was marked present that day.';
+      } else {
+        const late = present.filter(s => {
+          const sess = (s.sessions||[]).find(r => r.date === dateISO);
+          return sess && (sess.status === 'late' || (!sess.status && sess.present));
+        }).length;
+        attBadge.innerHTML = `
+          <div style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);
+               border-radius:6px;padding:.45rem .75rem;font-size:.82rem;color:#10B981;
+               display:flex;align-items:center;gap:.5rem">
+            <span>✅</span>
+            <span><strong>${present.length}</strong> student${present.length!==1?'s':''} were present on this date
+            ${late ? `<span style="color:#F59E0B;margin-left:.4rem">(${late} late)</span>` : ''}</span>
+          </div>`;
+        attNote.textContent = 'Only present / late students are shown below.';
+      }
+
+      // Rebuild dropdown
+      stuSel.innerHTML = `<option value="">— Select student —</option>` +
+        useList.map(s =>
+          `<option value="${escHtml(s.id)}">${escHtml(s.name)}${s.studentId ? ' · '+escHtml(s.studentId) : ''}${
+            (() => {
+              const sess = (s.sessions||[]).find(r=>r.date===dateISO);
+              const st = sess ? (sess.status||(sess.present?'present':'absent')) : null;
+              return st==='late' ? ' ⏰ Late' : '';
+            })()
+          }</option>`
+        ).join('');
+    }
+
+    // Month changed → update date min/max, reset date to 1st of month (or today if current)
+    monthSel.addEventListener('change', () => {
+      const [y, m] = monthSel.value.split('-').map(Number);
+      const minD = firstDay(y, m);
+      const maxD = (y===todayYear && m===todayMonth) ? todayISO : lastDay(y, m);
+      dateInp.min   = minD;
+      dateInp.max   = maxD;
+      // Keep date if still in range, else reset to last day of month (or today)
+      if (dateInp.value < minD || dateInp.value > maxD) {
+        dateInp.value = maxD;
+      }
+      rebuildStudentDropdown(dateInp.value);
+    });
+
+    // Date changed → filter students
+    dateInp.addEventListener('change', () => {
+      rebuildStudentDropdown(dateInp.value);
+    });
+
+    // Initial population
+    rebuildStudentDropdown(defDate);
+
     return modal;
   }
 
