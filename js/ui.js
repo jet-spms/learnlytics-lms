@@ -1933,6 +1933,60 @@ const UI = (() => {
 
   // ─── End Admin User modals ───────────────────────────────────────────────
 
+  /**
+   * showBackdatedEntryModal — lets a trainer pick a past date + student
+   * to enter/correct a missed presentation evaluation.
+   * Returns the modal element.
+   */
+  function showBackdatedEntryModal(students, todayISO) {
+    // Default date = yesterday (or today if no past)
+    const yesterday = (() => {
+      const d = new Date(todayISO);
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().split('T')[0];
+    })();
+
+    const modal = el('div', 'modal-overlay');
+    modal.innerHTML = `
+      <div class="modal" style="max-width:440px">
+        <div class="modal-header">
+          <h2>📝 Backdate Presentation Entry</h2>
+          <button class="modal-close" id="modal-close">${_ICONS.close}</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:.88rem;color:var(--text2);margin-bottom:1.25rem;line-height:1.5">
+            Select the student and the date of the presentation. You can then score it as usual.
+            Existing evaluations for the same student + date will be <strong>overwritten</strong>.
+          </p>
+          <div class="form-group">
+            <label>Student *</label>
+            <select id="bd-student" class="form-select">
+              <option value="">— Select student —</option>
+              ${students.map(s =>
+                `<option value="${escHtml(s.id)}">${escHtml(s.name)}${s.studentId ? ' · ' + escHtml(s.studentId) : ''}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Presentation Date *</label>
+            <input type="date" id="bd-date" class="form-input"
+              value="${yesterday}" max="${todayISO}" style="cursor:pointer">
+            <p style="font-size:.75rem;color:var(--text3);margin-top:.25rem">
+              Select any past date (or today). Future dates are not allowed.
+            </p>
+          </div>
+          <p id="bd-error" style="color:var(--danger,#ef4444);font-size:.84rem;margin-top:.25rem;display:none"></p>
+          <div class="modal-footer">
+            <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="modal-confirm">Next → Score Presentation</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('bd-student').focus();
+    return modal;
+  }
+
   function showBulkImportModal(rows, onConfirm) {
     const modal = el('div', 'modal-overlay');
     const hasRows = rows.length > 0;
@@ -4769,8 +4823,10 @@ const UI = (() => {
         <span class="pres-slot-id">${s ? (s.studentId || '') : ''}</span>
         ${badge}
         <div class="pres-slot-actions">
-          ${!sl.completed && !sl.missed && showEval
-            ? `<button class="btn btn-primary btn-sm" data-pres-eval="${sl.studentId}" data-pres-date="${date}">Evaluate</button>`
+          ${showEval && !sl.missed
+            ? sl.completed
+              ? `<button class="btn btn-outline btn-sm" data-pres-eval="${sl.studentId}" data-pres-date="${date}" title="Re-enter/edit marks">✏️ Edit Score</button>`
+              : `<button class="btn btn-primary btn-sm" data-pres-eval="${sl.studentId}" data-pres-date="${date}">Evaluate</button>`
             : ''}
         </div>
       </div>`;
@@ -4789,6 +4845,7 @@ const UI = (() => {
           <button class="btn btn-outline" id="btn-pres-back">← Back</button>
           <button class="btn btn-outline" id="btn-pres-prev-month">‹ Prev</button>
           <button class="btn btn-outline" id="btn-pres-next-month">› Next</button>
+          <button class="btn btn-primary" id="btn-backdate-pres" title="Enter marks for a past date">📝 Backdate Entry</button>
         </div>
       </div>
 
@@ -5801,6 +5858,7 @@ const UI = (() => {
     renderStudentProfile, renderProfileTab,
     showBatchModal, showStudentModal, showBulkImportModal, showTransferModal, showConfirm, showDeleteRecurringModal, showToast,
     showCreateUserModal, showEditUserModal, showAdminResetPasswordModal,
+    showBackdatedEntryModal,
     getMockParamsConfig,
     // Auth screen
     renderAuthScreen, showAuthError, setAuthState,

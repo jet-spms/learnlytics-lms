@@ -5566,6 +5566,61 @@ const App = (() => {
       onEval, onSkip, onRemoveSkip, onNav,
       () => selectBatch(batchId)
     );
+
+    // Backdate Entry button — wire after render
+    document.getElementById('btn-backdate-pres')?.addEventListener('click', () => {
+      const students = (batch.students || []).filter(s => s && s.id && s.id !== '[removed]')
+        .sort((a, b) => a.name.localeCompare(b.name));
+      if (!students.length) { UI.showToast('No students in this batch.', 'error'); return; }
+
+      const modal = UI.showBackdatedEntryModal(students, todayISO);
+      document.getElementById('modal-confirm').addEventListener('click', () => {
+        const errEl     = document.getElementById('bd-error');
+        const studentId = document.getElementById('bd-student').value;
+        const date      = document.getElementById('bd-date').value;
+
+        errEl.style.display = 'none';
+        if (!studentId) { errEl.textContent = 'Please select a student.'; errEl.style.display = ''; return; }
+        if (!date)      { errEl.textContent = 'Please select a date.'; errEl.style.display = ''; return; }
+        if (date > todayISO) { errEl.textContent = 'Future dates are not allowed.'; errEl.style.display = ''; return; }
+
+        const student = Storage.getStudent(batchId, studentId);
+        if (!student) { errEl.textContent = 'Student not found.'; errEl.style.display = ''; return; }
+
+        // Get/create schedule for that date's month
+        const [y, m] = date.split('-').map(Number);
+        const schedMonth = m - 1; // 0-indexed
+        let sched = Storage.getBatchPresentationSchedule(batchId, y, schedMonth) || { slots: {}, repeatQueue: [] };
+        if (!sched.slots)       sched.slots = {};
+        if (!sched.repeatQueue) sched.repeatQueue = [];
+
+        // Ensure a slot exists for this student on this date (add if missing)
+        if (!sched.slots[date]) sched.slots[date] = [];
+        const existingSlot = sched.slots[date].find(sl => sl.studentId === studentId);
+        if (!existingSlot) {
+          const slotNum = sched.slots[date].length + 1;
+          sched.slots[date].push({ studentId, slot: slotNum, completed: false, missed: false });
+          Storage.saveBatchPresentationSchedule(batchId, y, schedMonth, sched);
+        }
+
+        modal.remove();
+
+        // Open evaluation modal
+        UI.renderPresentationEvalModal(student, date, (metrics) => {
+          // Re-fetch schedule in case it was updated
+          const freshSched = Storage.getBatchPresentationSchedule(batchId, y, schedMonth) || sched;
+          Storage.savePresentationResult(batchId, studentId, date, metrics, freshSched, y, schedMonth);
+          UI.showToast(`Presentation saved for ${student.name} on ${date}.`, 'success');
+          // Reload the month view for the entered date's month
+          openPresentationSchedule(batchId, y, schedMonth);
+        });
+      });
+
+      // Close modal on backdrop/cancel
+      modal.querySelector('#modal-close')?.addEventListener('click',  () => modal.remove());
+      modal.querySelector('#modal-cancel')?.addEventListener('click', () => modal.remove());
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    });
   }
 
   // ─── SB: Sync overlay helpers ─────────────────────────────────────────────
