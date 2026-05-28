@@ -4368,6 +4368,11 @@ const UI = (() => {
           <h1 class="view-title">All Batches</h1>
           <p class="view-sub">Institute-wide batch overview</p>
         </div>
+        <div class="header-actions">
+          <button class="btn btn-outline" id="btn-import-batches" title="Import multiple batches from Excel">
+            ${_ICONS.arrowDown} Import Batches
+          </button>
+        </div>
       </div>
       <div class="stats-grid" style="margin-bottom:1.5rem">
         ${statCard('Total Batches',  allBatches.length, _ICONS.allBatches, 'neutral')}
@@ -6093,6 +6098,130 @@ const UI = (() => {
     `;
   }
 
+  // ─── Import Batches from Excel — modal ───────────────────────────────────────
+  /**
+   * showImportBatchesModal(previewData, onAction)
+   *  previewData = null → show upload/instructions UI
+   *  previewData = { batches: [{name,code,desc,startDate,endDate,capacity,status,students:[]}] }
+   *                → show preview cards + Import button
+   *  onAction({ action: 'parse'|'import'|'template', file?, batches? })
+   */
+  function showImportBatchesModal(previewData, onAction) {
+    const modal = el('div', 'modal-overlay');
+    const hasPrev = previewData && previewData.batches && previewData.batches.length > 0;
+
+    const formatDate = d => d ? d : '—';
+    const statusBadge = s => {
+      const map = { active:'#10B981', completed:'#64748b', upcoming:'#F59E0B', archived:'#ef4444' };
+      const col = map[s] || '#64748b';
+      return `<span style="background:${col}22;color:${col};padding:.15rem .5rem;border-radius:99px;font-size:.75rem;font-weight:600;text-transform:capitalize">${s||'active'}</span>`;
+    };
+
+    const previewCards = hasPrev ? previewData.batches.map((b, i) => `
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.85rem 1rem;margin-bottom:.6rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+          <div>
+            <span style="font-weight:600;color:#f1f5f9">${escHtml(b.name)}</span>
+            <code style="margin-left:.5rem;background:rgba(255,255,255,.08);padding:.1rem .4rem;border-radius:4px;font-size:.8rem;color:#94a3b8">${escHtml(b.code||'—')}</code>
+          </div>
+          ${statusBadge(b.status)}
+        </div>
+        ${b.desc ? `<div style="font-size:.82rem;color:#94a3b8;margin-top:.3rem">${escHtml(b.desc)}</div>` : ''}
+        <div style="display:flex;gap:1.2rem;margin-top:.55rem;flex-wrap:wrap;font-size:.81rem;color:#64748b">
+          <span>📅 ${formatDate(b.startDate)} → ${formatDate(b.endDate)}</span>
+          ${b.capacity ? `<span>👥 Capacity: ${b.capacity}</span>` : ''}
+          ${b.students && b.students.length > 0 ? `<span style="color:#0277FA">🎓 ${b.students.length} student${b.students.length!==1?'s':''} to import</span>` : '<span>No students in file</span>'}
+        </div>
+      </div>`).join('') : '';
+
+    modal.innerHTML = `
+      <div class="modal" style="max-width:660px;width:95vw">
+        <div class="modal-header">
+          <h2>Import Batches from Excel</h2>
+          <button class="modal-close" id="modal-close">${_ICONS.close}</button>
+        </div>
+        <div class="modal-body">
+          ${!hasPrev ? `
+            <p style="color:#94a3b8;margin-bottom:.8rem">
+              Upload an Excel file with two sheets to create multiple batches at once.
+            </p>
+            <div style="background:#0F172A;border-radius:8px;padding:.8rem 1rem;font-size:.82rem;margin-bottom:.8rem;line-height:1.7">
+              <div style="color:#fbbf24;font-weight:600;margin-bottom:.3rem">Sheet 1 — Batches (required)</div>
+              <code style="color:#7dd3fc">Batch Name &nbsp;|&nbsp; Batch Code &nbsp;|&nbsp; Description &nbsp;|&nbsp; Start Date &nbsp;|&nbsp; End Date &nbsp;|&nbsp; Capacity &nbsp;|&nbsp; Status</code>
+              <div style="color:#64748b;margin-top:.5rem;font-size:.79rem">Status values: active, upcoming, completed, archived</div>
+              <div style="color:#fbbf24;font-weight:600;margin-top:.7rem;margin-bottom:.3rem">Sheet 2 — Students (optional)</div>
+              <code style="color:#7dd3fc">Batch Code &nbsp;|&nbsp; Enrollment No &nbsp;|&nbsp; Full Name &nbsp;|&nbsp; Email &nbsp;|&nbsp; Phone</code>
+              <div style="color:#64748b;margin-top:.5rem;font-size:.79rem">Batch Code must match a batch in Sheet 1. Enrollment No and Email are optional.</div>
+            </div>
+            <a id="import-batch-tpl" href="#" style="color:#0277FA;font-size:.84rem;text-decoration:underline;display:inline-block;margin-bottom:1rem">
+              ⬇ Download sample template
+            </a>
+          ` : `
+            <p style="color:#94a3b8;margin-bottom:.75rem">
+              <strong style="color:#f1f5f9">${previewData.batches.length}</strong> batch${previewData.batches.length!==1?'es':''} found — review before importing:
+            </p>
+            <div style="max-height:320px;overflow-y:auto;padding-right:.25rem;margin-bottom:.5rem">
+              ${previewCards}
+            </div>
+          `}
+          <div style="margin-top:${hasPrev ? '.5' : '0'}rem">
+            <label style="display:block;font-size:.84rem;color:#94a3b8;margin-bottom:.4rem">
+              ${hasPrev ? 'Upload a different file:' : 'Select Excel file (.xlsx / .xls):'}
+            </label>
+            <input type="file" id="import-batches-file" accept=".xlsx,.xls"
+              style="font-size:.84rem;color:#f1f5f9;width:100%">
+          </div>
+          <div id="import-batch-err" style="color:#f87171;font-size:.82rem;margin-top:.5rem;display:none"></div>
+          <div class="modal-footer" style="margin-top:1.25rem">
+            <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+            ${hasPrev
+              ? `<button class="btn btn-primary" id="import-batches-confirm">
+                   Import ${previewData.batches.length} Batch${previewData.batches.length!==1?'es':''}
+                 </button>`
+              : `<button class="btn btn-primary" id="import-batches-preview">Preview</button>`
+            }
+          </div>
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    const closeModal = () => modal.remove();
+    document.getElementById('modal-cancel').addEventListener('click', closeModal);
+    document.getElementById('modal-close').addEventListener('click',  closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    const errEl = () => document.getElementById('import-batch-err');
+    const showErr = msg => { const e = errEl(); if (e) { e.textContent = msg; e.style.display = 'block'; } };
+
+    if (!hasPrev) {
+      document.getElementById('import-batch-tpl')?.addEventListener('click', ev => {
+        ev.preventDefault();
+        onAction({ action: 'template' });
+      });
+
+      document.getElementById('import-batches-preview')?.addEventListener('click', () => {
+        const file = document.getElementById('import-batches-file').files[0];
+        if (!file) { showErr('Please select an Excel file first.'); return; }
+        closeModal();
+        onAction({ action: 'parse', file });
+      });
+    } else {
+      document.getElementById('import-batches-confirm')?.addEventListener('click', () => {
+        closeModal();
+        onAction({ action: 'import', batches: previewData.batches });
+      });
+
+      // Allow re-upload in preview state
+      document.getElementById('import-batches-file')?.addEventListener('change', ev => {
+        const file = ev.target.files[0];
+        if (!file) return;
+        closeModal();
+        onAction({ action: 'parse', file });
+      });
+    }
+  }
+
   return {
     renderSidebar, renderNavSidebar, toggleSidebar, setNavSection, setNavMode, toggleNavGroup,
     openNavFlyout, closeNavFlyout,
@@ -6111,7 +6240,7 @@ const UI = (() => {
     renderStudentProfile, renderProfileTab,
     showBatchModal, showStudentModal, showBulkImportModal, showTransferModal, showConfirm, showDeleteRecurringModal, showToast,
     showCreateUserModal, showEditUserModal, showAdminResetPasswordModal,
-    showBackdatedEntryModal,
+    showBackdatedEntryModal, showImportBatchesModal,
     getMockParamsConfig,
     // Auth screen
     renderAuthScreen, showAuthError, setAuthState,

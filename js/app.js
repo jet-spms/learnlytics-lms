@@ -3033,6 +3033,11 @@ const App = (() => {
     UI.renderSidebar(Storage.getMyBatches(), null);
     _updateContentTopbar('All Batches');
     UI.renderAdminAllBatchesScreen();
+
+    // Wire Import Batches button
+    document.getElementById('btn-import-batches')?.addEventListener('click', () => {
+      openImportBatchesModal();
+    });
   }
 
   function openFacultyBatchPerformance() {
@@ -3047,6 +3052,155 @@ const App = (() => {
     UI.renderFacultyBatchPerformanceScreen(allUsers, allBatches);
     // Chart is rendered by ui.js internally after DOM is built
     _bindFacultyPerfCharts(allUsers, allBatches);
+  }
+
+  // ─── Import Multiple Batches from Excel ──────────────────────────────────────
+
+  function openImportBatchesModal(previewData) {
+    UI.showImportBatchesModal(previewData || null, ({ action, file, batches }) => {
+
+      // ── Download sample template ─────────────────────────────────────────────
+      if (action === 'template') {
+        const wb = XLSX.utils.book_new();
+        const batchSheet = XLSX.utils.aoa_to_sheet([
+          ['Batch Name', 'Batch Code', 'Description', 'Start Date', 'End Date', 'Capacity', 'Status'],
+          ['ANH BATCH 2025', 'ANH25', 'Advanced Networking Hardware', '2025-06-01', '2025-11-30', '30', 'active'],
+          ['LINUX BATCH A', 'LXA25', 'Linux Administration', '2025-07-01', '2025-12-31', '25', 'upcoming'],
+        ]);
+        const studentSheet = XLSX.utils.aoa_to_sheet([
+          ['Batch Code', 'Enrollment No', 'Full Name', 'Email', 'Phone'],
+          ['ANH25', 'JK-001', 'Rahul Sharma', 'rahul@example.com', '9876543210'],
+          ['ANH25', 'JK-002', 'Priya Patel',  'priya@example.com', '9876543211'],
+          ['LXA25', 'JK-003', 'Amit Singh',   'amit@example.com',  '9876543212'],
+        ]);
+        XLSX.utils.book_append_sheet(wb, batchSheet,   'Batches');
+        XLSX.utils.book_append_sheet(wb, studentSheet, 'Students');
+        XLSX.writeFile(wb, 'spms_batch_import_template.xlsx');
+        // Re-open so user can then upload after editing the template
+        openImportBatchesModal();
+        return;
+      }
+
+      // ── Parse Excel file ─────────────────────────────────────────────────────
+      if (action === 'parse') {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try {
+            const wb = XLSX.read(ev.target.result, { type: 'array' });
+
+            // ── Sheet 1: Batches ──────────────────────────────────────────────
+            const batchSheetName = wb.SheetNames[0];
+            if (!batchSheetName) throw new Error('Excel file has no sheets.');
+            const batchRows = XLSX.utils.sheet_to_json(wb.Sheets[batchSheetName], { defval: '' });
+            if (!batchRows.length) throw new Error('Sheet 1 (Batches) is empty or missing a header row.');
+
+            const parsedBatches = batchRows.map((row, idx) => {
+              // Normalise keys to lowercase-no-space for flexibility
+              const get = (...keys) => {
+                for (const k of keys) {
+                  const match = Object.keys(row).find(rk =>
+                    rk.trim().toLowerCase().replace(/\s+/g, '') === k.toLowerCase().replace(/\s+/g, '')
+                  );
+                  if (match !== undefined) return String(row[match]).trim();
+                }
+                return '';
+              };
+              const name = get('BatchName', 'Name', 'Batch');
+              if (!name) return null; // skip empty rows
+              const code     = get('BatchCode', 'Code');
+              const desc     = get('Description', 'Desc');
+              const startDate = get('StartDate', 'Start');
+              const endDate   = get('EndDate', 'End');
+              const capRaw    = get('Capacity', 'Cap');
+              const capacity  = parseInt(capRaw, 10) || 0;
+              const status    = get('Status') || 'active';
+              return { name, code, desc, startDate, endDate, capacity, status, students: [] };
+            }).filter(Boolean);
+
+            if (!parsedBatches.length) throw new Error('No valid batch rows found in Sheet 1.');
+
+            // Build lookup by code for student linking
+            const batchByCode = {};
+            parsedBatches.forEach(b => { if (b.code) batchByCode[b.code.toLowerCase()] = b; });
+
+            // ── Sheet 2: Students (optional) ──────────────────────────────────
+            if (wb.SheetNames.length > 1) {
+              const stuSheetName = wb.SheetNames[1];
+              const stuRows = XLSX.utils.sheet_to_json(wb.Sheets[stuSheetName], { defval: '' });
+              stuRows.forEach(row => {
+                const get = (...keys) => {
+                  for (const k of keys) {
+                    const match = Object.keys(row).find(rk =>
+                      rk.trim().toLowerCase().replace(/\s+/g, '') === k.toLowerCase().replace(/\s+/g, '')
+                    );
+                    if (match !== undefined) return String(row[match]).trim();
+                  }
+                  return '';
+                };
+                const bCode    = get('BatchCode', 'Code', 'Batch');
+                const fullName = get('FullName', 'Name', 'StudentName');
+                if (!fullName) return; // skip
+                const target = batchByCode[bCode.toLowerCase()];
+                if (!target) return; // unknown batch code
+                target.students.push({
+                  name:           fullName,
+                  enrollmentNo:   get('EnrollmentNo', 'EnrollmentNumber', 'Enrollment'),
+                  email:          get('Email'),
+                  phone:          get('Phone', 'Mobile'),
+                });
+              });
+            }
+
+            openImportBatchesModal({ batches: parsedBatches });
+          } catch (err) {
+            UI.showToast('Could not parse file: ' + err.message, 'error');
+            openImportBatchesModal(); // re-open upload modal
+          }
+        };
+        reader.onerror = () => { UI.showToast('Failed to read the file.', 'error'); openImportBatchesModal(); };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
+      // ── Import confirmed ─────────────────────────────────────────────────────
+      if (action === 'import') {
+        let createdCount = 0, studentCount = 0, skipped = 0;
+        batches.forEach(b => {
+          // Skip duplicate batch codes
+          const existing = Storage.getBatches().find(ex =>
+            ex.batchCode && b.code && ex.batchCode.toLowerCase() === b.code.toLowerCase()
+          );
+          if (existing) { skipped++; return; }
+
+          const newBatch = Storage.createBatch(b.name, b.desc || '', {
+            batchCode: b.code,
+            startDate: b.startDate,
+            endDate:   b.endDate,
+            capacity:  b.capacity,
+            status:    b.status || 'active',
+          });
+          createdCount++;
+          (b.students || []).forEach(s => {
+            Storage.createStudent(newBatch.id, {
+              name:         s.name,
+              enrollmentNo: s.enrollmentNo,
+              email:        s.email,
+              phone:        s.phone,
+            });
+            studentCount++;
+          });
+        });
+
+        // Refresh the All Batches screen
+        UI.renderAdminAllBatchesScreen();
+        document.getElementById('btn-import-batches')?.addEventListener('click', () => openImportBatchesModal());
+
+        let msg = `${createdCount} batch${createdCount !== 1 ? 'es' : ''} created`;
+        if (studentCount) msg += ` with ${studentCount} student${studentCount !== 1 ? 's' : ''}`;
+        if (skipped) msg += ` (${skipped} skipped — duplicate code)`;
+        UI.showToast(msg, 'success');
+      }
+    });
   }
 
   function _bindFacultyPerfCharts(allUsers, allBatches) {
