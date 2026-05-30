@@ -584,15 +584,21 @@ const UI = (() => {
         : null;
       if (sess && sess.subject) {
         _sessionInfoEl.innerHTML = `
-          <div style="background:rgba(2,119,250,.1);border:1px solid rgba(2,119,250,.3);border-radius:8px;
-               padding:.55rem 1rem;display:flex;align-items:flex-start;gap:.65rem;flex-wrap:wrap">
-            <span style="font-size:.8rem;font-weight:700;color:#0277FA;white-space:nowrap;padding-top:.05rem">📚 Session #${sess.sessionNo}</span>
-            <div style="flex:1;min-width:0">
-              <span style="font-size:.85rem;font-weight:700;color:#f1f5f9">${escHtml(sess.subject)}</span>
-              <span style="color:#64748b;margin:0 .35rem">·</span>
-              <span style="font-size:.84rem;color:#cbd5e1">${escHtml(sess.topic)}</span>
+          <div style="border-radius:10px;overflow:hidden;border:1px solid rgba(124,58,237,.28);
+               box-shadow:0 2px 8px rgba(124,58,237,.12)">
+            <!-- Purple header strip -->
+            <div style="background:#7C3AED;padding:.45rem 1rem;display:flex;align-items:center;gap:.6rem">
+              <span style="font-size:.72rem;font-weight:800;color:#fff;letter-spacing:.06em;text-transform:uppercase">📚 Today&apos;s Session</span>
+              <span style="background:rgba(255,255,255,.22);color:#fff;font-size:.72rem;font-weight:700;
+                   padding:.1rem .5rem;border-radius:99px">#${sess.sessionNo}</span>
+              <span style="margin-left:auto;background:rgba(255,255,255,.18);color:#fff;font-size:.72rem;
+                   font-weight:700;padding:.1rem .5rem;border-radius:99px">${sess.durationHrs} hrs</span>
             </div>
-            <span style="font-size:.75rem;color:#475569;white-space:nowrap;align-self:center">${sess.durationHrs}h</span>
+            <!-- White content body -->
+            <div style="background:var(--surface,#fff);padding:.6rem 1rem;display:flex;flex-direction:column;gap:.22rem">
+              <span style="font-size:.97rem;font-weight:700;color:var(--text1,#1e293b);line-height:1.3">${escHtml(sess.subject)}</span>
+              <span style="font-size:.83rem;color:var(--text2,#475569);line-height:1.4">${escHtml(sess.topic)}</span>
+            </div>
           </div>`;
       } else {
         _sessionInfoEl.innerHTML = '';
