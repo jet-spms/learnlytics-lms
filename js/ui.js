@@ -345,6 +345,14 @@ const UI = (() => {
     const holidays = batch.holidays || [];
     const dateRows = Calc.batchAttendanceByDate(students, holidays, batch.quickClassDates || null);
 
+    // Build date → session lookup from course plan
+    const _dateSessionMap = {};
+    if ((batch.coursePlan || []).length && batch.startDate) {
+      const filled = _forwardFillSubjects(batch.coursePlan);
+      _mapSessionDates(filled, batch.startDate, holidays, batch.sessionsPerDay || 1)
+        .forEach(r => { if (r.mappedDate) _dateSessionMap[r.mappedDate] = r; });
+    }
+
     main.innerHTML = `
       <div class="view-header">
         <div>
@@ -381,6 +389,8 @@ const UI = (() => {
                   <tr>
                     <th>Date</th>
                     <th>Day</th>
+                    <th>Subject</th>
+                    <th>Topic</th>
                     <th>Status</th>
                     <th>Present</th>
                     <th>Absent</th>
@@ -394,9 +404,18 @@ const UI = (() => {
                     if (row.isSunday)      { rowCls = 'att-row-weekend'; statusLabel = 'Week Off (Sunday)'; statusCls = 'att-status-off'; }
                     else if (row.holiday)  { rowCls = 'att-row-holiday'; statusLabel = row.holiday.reason; statusCls = 'att-status-holiday'; }
                     const pctColor = parseFloat(row.pct) >= 75 ? 'text-good' : parseFloat(row.pct) >= 50 ? '' : 'text-bad';
+                    const sess = _dateSessionMap[row.date];
+                    const subjCell = sess
+                      ? `<td style="font-size:.8rem;font-weight:600;color:var(--accent,#0277FA);max-width:10rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(sess.subject)}">${escHtml(sess.subject)}</td>`
+                      : `<td style="color:var(--text3,#64748b);font-size:.78rem">—</td>`;
+                    const topicCell = sess
+                      ? `<td style="font-size:.78rem;color:var(--text2,#cbd5e1);max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(sess.topic)}">${escHtml(sess.topic)}</td>`
+                      : `<td style="color:var(--text3,#64748b);font-size:.78rem">—</td>`;
                     return `<tr class="${rowCls}">
                       <td><strong>${fmtDate(row.date)}</strong></td>
                       <td>${row.dayName}</td>
+                      ${subjCell}
+                      ${topicCell}
                       <td><span class="${statusCls}">${statusLabel}</span></td>
                       <td class="text-good"><strong>${row.present + row.late}</strong></td>
                       <td class="text-bad">${row.absent}</td>
@@ -463,6 +482,9 @@ const UI = (() => {
           <button class="btn btn-primary" id="btn-save-session">Save Session</button>
         </div>
       </div>
+
+      <!-- Today's session info (from course plan) -->
+      <div id="qc-session-info" style="margin-bottom:.75rem"></div>
 
       <!-- Live summary strip -->
       <div class="qc-summary-bar" id="qc-summary-bar">
@@ -553,8 +575,34 @@ const UI = (() => {
         }
       }
     }
+    // Session topic info bar — shows Subject + Topic from course plan for selected date
+    const _sessionInfoEl = document.getElementById('qc-session-info');
+    function _updateSessionInfo() {
+      if (!_sessionInfoEl) return;
+      const sess = (typeof _getSessionForDate === 'function')
+        ? _getSessionForDate(batch, dateInp.value)
+        : null;
+      if (sess && sess.subject) {
+        _sessionInfoEl.innerHTML = `
+          <div style="background:rgba(2,119,250,.1);border:1px solid rgba(2,119,250,.3);border-radius:8px;
+               padding:.55rem 1rem;display:flex;align-items:flex-start;gap:.65rem;flex-wrap:wrap">
+            <span style="font-size:.8rem;font-weight:700;color:#0277FA;white-space:nowrap;padding-top:.05rem">📚 Session #${sess.sessionNo}</span>
+            <div style="flex:1;min-width:0">
+              <span style="font-size:.85rem;font-weight:700;color:#f1f5f9">${escHtml(sess.subject)}</span>
+              <span style="color:#64748b;margin:0 .35rem">·</span>
+              <span style="font-size:.84rem;color:#cbd5e1">${escHtml(sess.topic)}</span>
+            </div>
+            <span style="font-size:.75rem;color:#475569;white-space:nowrap;align-self:center">${sess.durationHrs}h</span>
+          </div>`;
+      } else {
+        _sessionInfoEl.innerHTML = '';
+      }
+    }
+
     dateInp.addEventListener('change', updateDateHint);
+    dateInp.addEventListener('change', _updateSessionInfo);
     updateDateHint();
+    _updateSessionInfo();
 
     // Prev / Next date navigation — skip Sundays and holidays
     function _stepDate(direction) {
@@ -3349,6 +3397,30 @@ const UI = (() => {
   // ─── Manage Batch Screen (Phase 5) ────────────────────────────────────────
 
   /** Maps each session to a calendar date (Mon–Sat, skipping Sundays & holidays). */
+  /**
+   * Forward-fill blank subject names within a coursePlan array.
+   * Returns a NEW array — does not mutate the original.
+   */
+  function _forwardFillSubjects(plan) {
+    let last = '';
+    return plan.map(row => {
+      if (row.subject && row.subject.trim()) last = row.subject.trim();
+      return last ? { ...row, subject: last } : { ...row };
+    });
+  }
+
+  /**
+   * Given a coursePlan + batch start/holidays, return the plan entry
+   * whose mappedDate === targetISO (or null if not found).
+   */
+  function _getSessionForDate(batch, targetISO) {
+    const plan = batch.coursePlan || [];
+    if (!plan.length || !batch.startDate) return null;
+    const filled  = _forwardFillSubjects(plan);
+    const mapped  = _mapSessionDates(filled, batch.startDate, batch.holidays || [], batch.sessionsPerDay || 1);
+    return mapped.find(r => r.mappedDate === targetISO) || null;
+  }
+
   function _mapSessionDates(plan, startDate, holidays, sessPerDay) {
     if (!startDate || !plan.length) return plan.map(s => ({ ...s, mappedDate: '' }));
     const spd  = Math.max(1, parseInt(sessPerDay) || 1);
@@ -3391,7 +3463,23 @@ const UI = (() => {
         <div class="empty-state-msg">Upload a course logsheet Excel.<br>Expected columns: <b>Subject · Sessions · Topic · Duration (Hrs.)</b></div>
       </div>`;
 
-    const mapped  = _mapSessionDates(plan, startDate, holidays, sessPerDay);
+    // Auto forward-fill blank subject names (fixes plans imported before the repair)
+    const filledPlan = _forwardFillSubjects(plan);
+    const hasBlankSubjects = plan.some(r => !r.subject || !r.subject.trim());
+    const repairBanner = hasBlankSubjects ? `
+      <div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:8px;
+           padding:.65rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+        <span style="font-size:.85rem;color:#F59E0B;flex:1">
+          ⚠️  Some sessions are missing subject names (merged cells not read on upload).
+          Click <strong>Fix Subject Names</strong> to repair, or re-upload via <em>Replace Plan</em>.
+        </span>
+        <button class="btn btn-sm" id="btn-repair-subjects"
+          style="background:#F59E0B;color:#000;font-weight:600;border:none;cursor:pointer;padding:.35rem .85rem;border-radius:6px;white-space:nowrap">
+          🔧 Fix Subject Names
+        </button>
+      </div>` : '';
+
+    const mapped  = _mapSessionDates(filledPlan, startDate, holidays, sessPerDay);
     const today   = (()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
     const firstDt = mapped.find(r=>r.mappedDate)?.mappedDate || '';
     const lastDt  = [...mapped].reverse().find(r=>r.mappedDate)?.mappedDate || '';
@@ -3446,7 +3534,7 @@ const UI = (() => {
       </details>`;
     }).join('');
 
-    return uploadZone + mappingBanner + `<div id="course-plan-body">${subjectCards}</div>`;
+    return uploadZone + mappingBanner + repairBanner + `<div id="course-plan-body">${subjectCards}</div>`;
   }
 
   function renderManageBatch(batch, activeTab = 'details') {

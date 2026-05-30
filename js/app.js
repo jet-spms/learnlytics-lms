@@ -1558,6 +1558,21 @@ const App = (() => {
       openManageBatch(batchId, 'session-plan');
     });
 
+    // Repair blank subject names in stored course plan
+    document.getElementById('btn-repair-subjects')?.addEventListener('click', () => {
+      const batch = Storage.getBatch(batchId);
+      if (!batch || !(batch.coursePlan || []).length) return;
+      let last = '';
+      const repaired = batch.coursePlan.map(row => {
+        if (row.subject && row.subject.trim()) last = row.subject.trim();
+        return last ? { ...row, subject: last } : { ...row };
+      });
+      const fixed = repaired.filter(r => r.subject && r.subject.trim()).length;
+      Storage.updateBatch(batchId, { coursePlan: repaired });
+      UI.showToast(`Subject names repaired — ${fixed} sessions now have subject labels.`, 'success');
+      openManageBatch(batchId, 'session-plan');
+    });
+
     // Upload Session Plan — Session Plan tab
     document.getElementById('mb-plan-file')?.addEventListener('change', e => {
       const file = e.target.files[0];
