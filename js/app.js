@@ -253,6 +253,11 @@ const App = (() => {
     Storage.migrateOrphanedBatches(user.id);
     Storage.migrateBatchInstructors(); // P2: ensure every batch has at least one primary instructor
 
+    // Push local users + batches to Supabase in the background so other devices
+    // can authenticate and see the latest data immediately after this login.
+    SupabaseSync.flushUsers(Storage.getAllUsers()).catch(() => {});
+    SupabaseSync.flushBatches().catch(() => {});
+
     // Reset nav mode on every login so admin always starts in trainer context
     state.navMode = 'trainer';
     UI.setNavMode('trainer');
@@ -1115,7 +1120,17 @@ const App = (() => {
     if (!username) { UI.showAuthError('auth-login-error', 'Please enter your username.'); return; }
     if (!password) { UI.showAuthError('auth-login-error', 'Please enter your password.'); return; }
 
-    const result = Storage.authenticateUser(username, password);
+    let result = Storage.authenticateUser(username, password);
+
+    // Account not in local storage — try pulling from Supabase cloud then retry once
+    if (!result.ok && (result.error === 'Username not found.' || result.error === 'User not found.')) {
+      UI.showAuthError('auth-login-error', '🔄 Checking cloud accounts…');
+      _showSyncOverlay('Fetching accounts from cloud…');
+      await SupabaseSync.hydrateUsers();
+      _hideSyncOverlay();
+      result = Storage.authenticateUser(username, password);
+    }
+
     if (!result.ok) {
       UI.showAuthError('auth-login-error', result.error);
       return;
