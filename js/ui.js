@@ -5845,6 +5845,13 @@ const UI = (() => {
         <span class="sync-badge" id="sync-status-badge"></span>
       </div>
       <div class="ct-actions">
+        <button class="ct-icon-btn" id="ct-btn-sync-now" title="Sync latest data from cloud"
+          style="color:var(--accent,#0277FA)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1rem;height:1rem">
+            <polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+          </svg>
+        </button>
         <button class="ct-icon-btn" id="ct-dark-toggle" title="${isDark ? 'Light Mode' : 'Dark Mode'}">
           ${isDark ? _ICONS.sun : _ICONS.moon}
         </button>

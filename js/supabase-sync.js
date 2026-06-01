@@ -86,16 +86,15 @@ const SupabaseSync = (() => {
   }
 
   // ── hydrateBatches ────────────────────────────────────────────────────────────
-  // Pull batches from Supabase → merge into localStorage.
-  // isAdmin = true → fetch ALL batches; false → only owner's batches.
+  // Pull ALL batches from Supabase → merge into localStorage.
+  // We fetch all (not just owner's) because trainers may be assigned to batches
+  // owned by the admin. The app's getMyBatches() handles visibility filtering.
   async function hydrateBatches(userId, isAdmin) {
     const client = _getClient();
     if (!client) return { ok: true, source: 'local' };
     try {
-      let q = client.from('spms_batches').select('id, owner_id, data');
-      if (!isAdmin && userId) q = q.eq('owner_id', userId);
-
-      const { data, error } = await q;
+      // Always fetch ALL batches — app-level filtering via getMyBatches() controls visibility
+      const { data, error } = await client.from('spms_batches').select('id, owner_id, data');
       if (error) return { ok: false, error: error.message };
       if (!data || !data.length) return { ok: true, count: 0 };
 

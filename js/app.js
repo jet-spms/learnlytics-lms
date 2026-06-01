@@ -111,6 +111,31 @@ const App = (() => {
     }
   }
 
+  // ── Manual cloud sync — triggered by the 🔄 button in the content topbar ───
+  async function _doManualSync() {
+    const btn = document.getElementById('ct-btn-sync-now');
+    if (btn) {
+      btn.style.animation = 'spms-spin 0.75s linear infinite';
+      btn.disabled = true;
+    }
+    const user = Storage.getCurrentUser();
+    try {
+      await SupabaseSync.hydrateUsers();
+      await SupabaseSync.hydrateBatches(user?.id, user?.role === 'admin');
+      // Refresh the current view with fresh data
+      UI.renderSidebar(Storage.getMyBatches(), state.activeBatchId);
+      if (state.activeBatchId) {
+        const batch = Storage.getBatch(state.activeBatchId);
+        if (batch) { UI.renderBatchDashboard(batch); bindDashboardEvents(); }
+      }
+      UI.showToast('Synced latest data from cloud ✓', 'success');
+    } catch {
+      UI.showToast('Sync failed — working offline.', 'error');
+    } finally {
+      if (btn) { btn.style.animation = ''; btn.disabled = false; }
+    }
+  }
+
   function _doBackup() {
     const blob = new Blob([Storage.exportJSON()], { type: 'application/json' });
     const a    = document.createElement('a');
@@ -559,13 +584,27 @@ const App = (() => {
     state.navSection      = 'dashboard';
     state.activeStudentId = null;
     Charts.destroyAll();
-    const batch = Storage.getBatch(batchId);
-    if (!batch) return;
-    UI.setNavSection('dashboard');
-    UI.renderSidebar(Storage.getMyBatches(), batchId); // ISOLATION_CHANGE: filtered
-    _updateContentTopbar('Dashboard');
-    UI.renderBatchDashboard(batch);
-    bindDashboardEvents();
+
+    // Pull latest data for this batch from Supabase before rendering
+    // so changes saved by other devices/users are immediately visible.
+    SupabaseSync.hydrateSingleBatch(batchId).then(() => {
+      const batch = Storage.getBatch(batchId);
+      if (!batch) return;
+      UI.setNavSection('dashboard');
+      UI.renderSidebar(Storage.getMyBatches(), batchId);
+      _updateContentTopbar('Dashboard');
+      UI.renderBatchDashboard(batch);
+      bindDashboardEvents();
+    }).catch(() => {
+      // Fallback: render from local if network fails
+      const batch = Storage.getBatch(batchId);
+      if (!batch) return;
+      UI.setNavSection('dashboard');
+      UI.renderSidebar(Storage.getMyBatches(), batchId);
+      _updateContentTopbar('Dashboard');
+      UI.renderBatchDashboard(batch);
+      bindDashboardEvents();
+    });
   }
 
   // ─── Global Events ──────────────────────────────────────────────────────────
@@ -756,6 +795,7 @@ const App = (() => {
 
     // ── Content topbar event delegation ──────────────────────────────────────
     document.getElementById('content-area')?.addEventListener('click', e => {
+      if (e.target.closest('#ct-btn-sync-now')) { _doManualSync(); return; }
       if (e.target.closest('#ct-dark-toggle'))  { toggleTheme(); return; }
       if (e.target.closest('#ct-btn-backup'))   { _doBackup(); return; }
       if (e.target.closest('#ct-btn-restore'))  { document.getElementById('restore-input').click(); return; }
@@ -1808,7 +1848,7 @@ const App = (() => {
     tests.push({ week: label, date, marks, total });
     Storage.updateStudent(batchId, studentId, { weeklyTests: tests });
 
-    UI.showToast('Test saved!', 'success');
+    SupabaseSync.flushBatches().catch(() => {}); UI.showToast('Test saved!', 'success');
     _openTestsSlideOver(batchId, studentId); // refresh slide-over with new data
   }
 
@@ -2314,7 +2354,7 @@ const App = (() => {
     const student = Storage.getStudent(bid, sid);
     if (!student) return;
     Storage.updateStudent(bid, sid, { mockInterviews: [...(student.mockInterviews || []), entry] });
-    UI.showToast('Mock session saved!', 'success');
+    SupabaseSync.flushBatches().catch(() => {}); UI.showToast('Mock session saved!', 'success');
     _openMockSlideOver(bid, sid, 'manual');
   }
 
@@ -2340,7 +2380,7 @@ const App = (() => {
     if (!date)                             { UI.showToast('Please enter a date.', 'error'); return; }
     if (isNaN(score) || score < 0 || score > 10) { UI.showToast('Score must be 0–10.', 'error'); return; }
     Storage.addAiMock(bid, sid, { date, score });
-    UI.showToast('AI score saved!', 'success');
+    SupabaseSync.flushBatches().catch(() => {}); UI.showToast('AI score saved!', 'success');
     _openMockSlideOver(bid, sid, 'ai');
   }
 
@@ -5277,6 +5317,8 @@ const App = (() => {
       if (_newTasks > 0) {
         UI.renderSidebar(Storage.getMyBatches(), batchId);
       }
+      // Push to Supabase immediately so other devices see the update
+      SupabaseSync.flushBatches().catch(() => {});
       // Single clean confirmation — badge on sidebar handles task notification
       UI.showToast('Attendance saved.', 'success');
       const _dateInp = document.getElementById('session-date');
@@ -5413,6 +5455,7 @@ const App = (() => {
       }
     }
 
+    SupabaseSync.flushBatches().catch(() => {});
     UI.showToast(`${paramName} (Module ${moduleNum}) saved!`, 'success');
   }
 
@@ -5460,7 +5503,7 @@ const App = (() => {
       mockInterviews: [...(student.mockInterviews || []), entry]
     });
 
-    UI.showToast('Mock interview saved!', 'success');
+    SupabaseSync.flushBatches().catch(() => {}); UI.showToast('Mock interview saved!', 'success');
 
     // Phase 5: Soft warning if mock interview attendance differs from Quick Class for this date
     const _qcSession = (student.sessions || []).find(s => s.date === date);
@@ -5614,7 +5657,7 @@ const App = (() => {
 
     Storage.addAiMock(batchId, studentId, { date, score });
     _refreshProfileOnMockTab(batchId, studentId);
-    UI.showToast('AI Mock score saved!', 'success');
+    SupabaseSync.flushBatches().catch(() => {}); UI.showToast('AI Mock score saved!', 'success');
   }
 
   function _handleAiMockEdit(batchId, studentId, entryId, fromHistory = false) {
@@ -5827,7 +5870,7 @@ const App = (() => {
       if (!student) return;
       UI.renderPresentationEvalModal(student, date, (metrics) => {
         Storage.savePresentationResult(batchId, studentId, date, metrics, schedule, year, month);
-        UI.showToast('Evaluation saved!', 'success');
+        SupabaseSync.flushBatches().catch(() => {}); UI.showToast('Evaluation saved!', 'success');
         openPresentationSchedule(batchId, year, month);
       });
     }
