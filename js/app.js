@@ -5214,6 +5214,25 @@ const App = (() => {
     if (!batch) return;
     const sessionState = UI.renderQuickClass(batch);
 
+    // Pre-fill and update outcome card whenever the date picker changes
+    function _loadOutcomeForDate(dateISO) {
+      const saved = Storage.getSessionOutcome(batchId, dateISO);
+      const labSel    = document.getElementById('qc-lab-status');
+      const rateSel   = document.getElementById('qc-hands-rating');
+      const keyInp    = document.getElementById('qc-key-points');
+      const notesInp  = document.getElementById('qc-outcome-notes');
+      const savedBadge = document.getElementById('qc-outcome-saved');
+      if (labSel)    labSel.value    = saved?.labStatus     || '';
+      if (rateSel)   rateSel.value   = saved?.handsOnRating || '';
+      if (keyInp)    keyInp.value    = saved?.keyPoints     || '';
+      if (notesInp)  notesInp.value  = saved?.notes         || '';
+      if (savedBadge) savedBadge.style.display = saved ? '' : 'none';
+    }
+
+    const _dateInpEl = document.getElementById('session-date');
+    _dateInpEl?.addEventListener('change', () => _loadOutcomeForDate(_dateInpEl.value));
+    _loadOutcomeForDate(_dateInpEl?.value || _todayStr());
+
     document.getElementById('btn-save-session').addEventListener('click', () => {
       const today = _todayStr();
       const date  = document.getElementById('session-date').value;
@@ -5317,6 +5336,15 @@ const App = (() => {
       if (_newTasks > 0) {
         UI.renderSidebar(Storage.getMyBatches(), batchId);
       }
+      // Save session outcome (labs & hands-on)
+      const labStatus    = document.getElementById('qc-lab-status')?.value    || '';
+      const handsOnRating = document.getElementById('qc-hands-rating')?.value  || '';
+      const keyPoints    = document.getElementById('qc-key-points')?.value?.trim()   || '';
+      const outcomeNotes = document.getElementById('qc-outcome-notes')?.value?.trim() || '';
+      if (labStatus || handsOnRating || keyPoints || outcomeNotes) {
+        Storage.saveSessionOutcome(batchId, date, { labStatus, handsOnRating, keyPoints, notes: outcomeNotes });
+      }
+
       // Push to Supabase immediately so other devices see the update
       SupabaseSync.flushBatches().catch(() => {});
       // Single clean confirmation — badge on sidebar handles task notification

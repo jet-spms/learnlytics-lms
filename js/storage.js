@@ -596,6 +596,32 @@ const Storage = (() => {
   }
 
   /**
+   * saveSessionOutcome — stores the session outcome (lab completion, hands-on rating, notes)
+   * against a specific date for a batch.
+   * outcomeData: { keyPoints, labStatus, handsOnRating, notes }
+   */
+  function saveSessionOutcome(batchId, date, outcomeData) {
+    if (!batchId || !date) return;
+    const data     = load();
+    const batchIdx = data.batches.findIndex(b => b.id === batchId);
+    if (batchIdx === -1) return;
+    const batch = data.batches[batchIdx];
+    if (!batch.sessionOutcomes) batch.sessionOutcomes = {};
+    batch.sessionOutcomes[date] = {
+      ...outcomeData,
+      savedAt: new Date().toISOString(),
+    };
+    _touchBatch(batch);
+    save(data);
+  }
+
+  function getSessionOutcome(batchId, date) {
+    if (!batchId || !date) return null;
+    const batch = getBatch(batchId);
+    return (batch?.sessionOutcomes || {})[date] || null;
+  }
+
+  /**
    * v5: saveAbsentRange — creates absent session entries for every date in [startDate, endDate]
    * (inclusive) for a single student, skipping Sundays and holidays.
    */
@@ -1912,7 +1938,7 @@ const Storage = (() => {
     getStudents, getStudent, createStudent,
     updateStudent, deleteStudent, generateStudentId,
     addAiMock, updateAiMock, deleteAiMock,
-    saveSession, saveAbsentRange, saveCallLog,
+    saveSession, saveSessionOutcome, getSessionOutcome, saveAbsentRange, saveCallLog,
     getTasks, addTask, addManualTask, deleteTask, editManualTask, completeTask,
     exportJSON, importJSON,
     // Auth

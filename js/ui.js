@@ -391,6 +391,9 @@ const UI = (() => {
                     <th>Day</th>
                     <th>Subject</th>
                     <th>Topic</th>
+                    <th>Lab Status</th>
+                    <th>Performance</th>
+                    <th>Key Points</th>
                     <th>Status</th>
                     <th>Present</th>
                     <th>Absent</th>
@@ -405,17 +408,35 @@ const UI = (() => {
                     else if (row.holiday)  { rowCls = 'att-row-holiday'; statusLabel = row.holiday.reason; statusCls = 'att-status-holiday'; }
                     const pctColor = parseFloat(row.pct) >= 75 ? 'text-good' : parseFloat(row.pct) >= 50 ? '' : 'text-bad';
                     const sess = _dateSessionMap[row.date];
+                    const outc = (batch.sessionOutcomes || {})[row.date];
+
+                    const LAB_LABELS   = { completed:'✅ Completed', partial:'⚡ Partial', demo:'👁 Demo Only', notdone:'❌ Not Done' };
+                    const RATE_LABELS  = { excellent:'⭐ Excellent', good:'👍 Good', average:'➖ Average', needswork:'📈 Needs Work' };
+                    const RATE_COLORS  = { excellent:'#10B981', good:'#0277FA', average:'#F59E0B', needswork:'#EF4444' };
+
                     const subjCell = sess
                       ? `<td style="font-size:.8rem;font-weight:600;color:var(--accent,#0277FA);max-width:10rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(sess.subject)}">${escHtml(sess.subject)}</td>`
                       : `<td style="color:var(--text3,#64748b);font-size:.78rem">—</td>`;
                     const topicCell = sess
                       ? `<td style="font-size:.78rem;color:var(--text2,#cbd5e1);max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(sess.topic)}">${escHtml(sess.topic)}</td>`
                       : `<td style="color:var(--text3,#64748b);font-size:.78rem">—</td>`;
+                    const labCell = outc?.labStatus
+                      ? `<td style="font-size:.78rem;white-space:nowrap">${LAB_LABELS[outc.labStatus] || outc.labStatus}</td>`
+                      : `<td style="color:var(--text3,#64748b);font-size:.78rem">—</td>`;
+                    const rateCell = outc?.handsOnRating
+                      ? `<td style="font-size:.78rem;font-weight:600;color:${RATE_COLORS[outc.handsOnRating]||'inherit'};white-space:nowrap">${RATE_LABELS[outc.handsOnRating] || outc.handsOnRating}</td>`
+                      : `<td style="color:var(--text3,#64748b);font-size:.78rem">—</td>`;
+                    const outcomeNotesCell = outc?.keyPoints
+                      ? `<td style="font-size:.78rem;color:var(--text2);max-width:14rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(outc.keyPoints)}">${escHtml(outc.keyPoints)}</td>`
+                      : `<td style="color:var(--text3,#64748b);font-size:.78rem">—</td>`;
                     return `<tr class="${rowCls}">
                       <td><strong>${fmtDate(row.date)}</strong></td>
                       <td>${row.dayName}</td>
                       ${subjCell}
                       ${topicCell}
+                      ${labCell}
+                      ${rateCell}
+                      ${outcomeNotesCell}
                       <td><span class="${statusCls}">${statusLabel}</span></td>
                       <td class="text-good"><strong>${row.present + row.late}</strong></td>
                       <td class="text-bad">${row.absent}</td>
@@ -485,6 +506,51 @@ const UI = (() => {
 
       <!-- Today's session info (from course plan) -->
       <div id="qc-session-info" style="margin-bottom:.75rem"></div>
+
+      <!-- Session Outcome card -->
+      <div class="card" id="qc-outcome-card"
+           style="margin-bottom:.85rem;padding:.85rem 1.1rem;border:1px solid rgba(124,58,237,.22)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.7rem;flex-wrap:wrap">
+          <span style="font-size:.82rem;font-weight:700;color:#7C3AED;letter-spacing:.06em;text-transform:uppercase">
+            🧪 Session Outcome — Labs &amp; Hands-on
+          </span>
+          <span id="qc-outcome-saved" style="font-size:.75rem;color:#10B981;display:none">✓ Saved</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem">
+          <div>
+            <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:.3rem">Lab / Hands-on Status</label>
+            <select id="qc-lab-status" class="form-select" style="width:100%;font-size:.85rem">
+              <option value="">— Select —</option>
+              <option value="completed">✅ Lab Completed</option>
+              <option value="partial">⚡ Partially Completed</option>
+              <option value="demo">👁 Demo Only (No Hands-on)</option>
+              <option value="notdone">❌ Lab Not Done</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:.3rem">Student Performance</label>
+            <select id="qc-hands-rating" class="form-select" style="width:100%;font-size:.85rem">
+              <option value="">— Rate —</option>
+              <option value="excellent">⭐ Excellent</option>
+              <option value="good">👍 Good</option>
+              <option value="average">➖ Average</option>
+              <option value="needswork">📈 Needs Improvement</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:.65rem">
+          <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:.3rem">Key Points Covered / Topics Practised</label>
+          <textarea id="qc-key-points" class="form-input" rows="2"
+            placeholder="e.g. Students configured OSPF on Cisco routers, practiced subnetting…"
+            style="width:100%;resize:vertical;font-size:.85rem;min-height:3.5rem"></textarea>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:.3rem">Trainer Notes / Observations</label>
+          <textarea id="qc-outcome-notes" class="form-input" rows="2"
+            placeholder="e.g. 3 students needed extra help on subnetting, revisit next session…"
+            style="width:100%;resize:vertical;font-size:.85rem;min-height:3.5rem"></textarea>
+        </div>
+      </div>
 
       <!-- Live summary strip -->
       <div class="qc-summary-bar" id="qc-summary-bar">
